@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  userId         String    @id
+  name           String    @default("")
+  email          String    @default("")
+  cadence        String    @default("biweekly")
+  nextPay        DateTime?
+  payAmount      Decimal   @default(1700) @db.Decimal(12, 2)
+  primaryName    String    @default("Main checking")
+  primaryBalance Decimal   @default(0) @db.Decimal(12, 2)
+  primaryLogo    String?
+  notifBills     Boolean   @default(true)
+  notifWeekly    Boolean   @default(false)
+  onboardedAt    DateTime?
+}
+
+model Account {
+  id               String  @id @default(cuid())
+  userId           String
+  name             String
+  type             String
+  balance          Decimal @db.Decimal(12, 2)
+  logo             String?
+  // Reserved for the Plaid integration.
+  plaidItemId      String?
+  plaidAccountId   String?
+  plaidAccessToken String?
+
+  @@index([userId])
+}
+
+model Bill {
+  id       String   @id @default(cuid())
+  userId   String
+  name     String
+  amount   Decimal  @db.Decimal(12, 2)
+  kind     String
+  dueDate  DateTime
+  cycle    String   @default("monthly")
+  paid     Boolean  @default(false)
+  payFrom  String?
+  cardId   String?
+  oneTime  Boolean  @default(false)
+  personal Boolean  @default(false)
+  lender   String?
+
+  @@index([userId])
+}
+
+model Category {
+  id        String  @id @default(cuid())
+  userId    String
+  name      String
+  budget    Decimal @default(0) @db.Decimal(12, 2)
+  spent     Decimal @default(0) @db.Decimal(12, 2)
+  color     String
+  locked    Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@index([userId])
+}
+
+model Txn {
+  id                 String    @id @default(cuid())
+  userId             String
+  label              String
+  amount             Decimal   @db.Decimal(12, 2)
+  cat                String
+  postedAt           DateTime
+  src                String?
+  cardId             String?
+  billId             String?
+  deletedAt          DateTime?
+  // Reserved for the Plaid integration.
+  plaidTransactionId String?
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+}
+
+model Goal {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  target       Decimal   @db.Decimal(12, 2)
+  saved        Decimal   @default(0) @db.Decimal(12, 2)
+  per          Decimal   @default(0) @db.Decimal(12, 2)
+  note         String    @default("")
+  due          DateTime?
+  necessity    Boolean   @default(false)
+  paused       String?
+  behind       Boolean   @default(false)
+  financed     Decimal   @default(0) @db.Decimal(12, 2)
+  financedFrom String?
+
+  @@index([userId])
+}
+
+model Card {
+  id               String    @id @default(cuid())
+  userId           String
+  name             String
+  apr              Decimal   @db.Decimal(5, 2)
+  limit            Decimal   @db.Decimal(12, 2)
+  balance          Decimal   @default(0) @db.Decimal(12, 2)
+  dueDay           Int?
+  minPay           Decimal?  @db.Decimal(12, 2)
+  payInFull        Boolean   @default(false)
+  rewards          Json      @default("[]")
+  promoRate        Decimal?  @db.Decimal(5, 2)
+  promoEnd         DateTime?
+  balanceUpdatedAt DateTime  @default(now())
+
+  @@index([userId])
+}
