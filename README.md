@@ -13,8 +13,7 @@ pnpm + Turborepo monorepo:
 | `apps/api` | Hono REST API — Clerk JWT verification, Prisma, transactional money flows |
 | `packages/shared` | Pure domain math (safe-per-day, goals, cards, crunch, planner), Zod schemas, formatting — used by both apps |
 
-Postgres 16 runs in Docker. Design spec and the pixel-fidelity catalog live in
-`docs/superpowers/specs/`; the implementation plan in `docs/superpowers/plans/`.
+Postgres 16 runs in Docker.
 
 ## Getting started
 
@@ -47,8 +46,7 @@ pnpm typecheck
 
 API tests run against the dev database using `DEV_AUTH_BYPASS=1` (an
 `x-dev-user` header stands in for a Clerk session; never enable in
-production). The e2e happy path lives in `e2e/smoke.spec.ts` — see its header
-for how to run it against the dev servers.
+production).
 
 ## Plaid (reserved)
 
