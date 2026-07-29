@@ -89,12 +89,14 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   <div className="tnum" style={{fontSize: 11.5, color: 'var(--muted)'}}>
                     +{vm.payAmountF}
                   </div>
-                  <div
-                    className="tnum"
-                    style={{fontSize: 11, fontWeight: 600, color: 'var(--goals)'}}
-                  >
-                    −{vm.setAsideF} → goals
-                  </div>
+                  {vm.runway.setAside > 0 && (
+                    <div
+                      className="tnum"
+                      style={{fontSize: 11, fontWeight: 600, color: 'var(--goals)'}}
+                    >
+                      −{vm.setAsideF} → goals
+                    </div>
+                  )}
                 </div>
                 <button
                   title="It landed? Tap to confirm"

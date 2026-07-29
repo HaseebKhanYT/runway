@@ -81,32 +81,34 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                     +{vm.payAmountF}
                   </span>
                 </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 9}}>
-                  <span
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      background: 'var(--goals)',
-                      marginLeft: -22,
-                      flex: 'none',
-                    }}
-                  />
-                  <span style={{fontSize: 12.5, color: 'var(--muted)'}}>
-                    then set aside for goals
-                  </span>
-                  <span
-                    className="tnum"
-                    style={{
-                      marginLeft: 'auto',
-                      fontSize: 12.5,
-                      fontWeight: 650,
-                      color: 'var(--goals)',
-                    }}
-                  >
-                    −{vm.setAsideF}
-                  </span>
-                </div>
+                {vm.runway.setAside > 0 && (
+                  <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 9}}>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: 'var(--goals)',
+                        marginLeft: -22,
+                        flex: 'none',
+                      }}
+                    />
+                    <span style={{fontSize: 12.5, color: 'var(--muted)'}}>
+                      then set aside for goals
+                    </span>
+                    <span
+                      className="tnum"
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 12.5,
+                        fontWeight: 650,
+                        color: 'var(--goals)',
+                      }}
+                    >
+                      −{vm.setAsideF}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           }

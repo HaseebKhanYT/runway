@@ -1,5 +1,6 @@
 'use client';
 
+import {useUser} from '@clerk/nextjs';
 import {fm, ordSuf, type Cadence} from '@runway/shared';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
@@ -41,6 +42,7 @@ interface ObCard {
 
 /** Six-step first-run flow (catalog §1.9). `onExit` present = launched from Settings. */
 export function Onboarding({onExit}: {onExit?: () => void}) {
+  const {user} = useUser();
   const [step, setStep] = useState(0);
   const [balanceRaw, setBalanceRaw] = useState('');
   const [payRaw, setPayRaw] = useState('');
@@ -64,6 +66,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
       pay: parseFloat(payRaw) || 0,
       cadence,
       nextPay,
+      name: user?.fullName ?? undefined,
+      email: user?.primaryEmailAddress?.emailAddress ?? undefined,
       bills,
       cards,
       cats: CAT_PRESETS.filter((c) => pickedCats.has(c.key)).map((c) => ({
