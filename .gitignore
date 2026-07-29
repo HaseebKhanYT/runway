@@ -16,3 +16,4 @@ dist/
 # Build artifacts
 *.tsbuildinfo
 .clerk/
+.playwright-mcp/
