@@ -1,0 +1,14 @@
+# Design source material (kept local; catalog lives in docs/superpowers/specs/)
+design-v1/
+runway-design-v1.zip
+
+# Dependencies / builds
+node_modules/
+.next/
+dist/
+.turbo/
+
+# Env
+.env
+.env.local
+.env*.local
