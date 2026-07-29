@@ -8,7 +8,7 @@ function iso(today: Date, off: number): string {
 }
 
 function isoTime(today: Date, off: number): string {
-  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + off, 12).toISOString();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + off).toISOString();
 }
 
 /** The design's demo dataset (catalog §3.2), anchored to `today`. */
