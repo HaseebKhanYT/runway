@@ -12,3 +12,7 @@ dist/
 .env
 .env.local
 .env*.local
+
+# Build artifacts
+*.tsbuildinfo
+.clerk/
