@@ -1,0 +1,84 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--link);
+}
+a:hover {
+  color: var(--link-hover);
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::placeholder {
+  color: var(--placeholder);
+}
+
+button {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font-size: inherit;
+}
+
+input,
+select {
+  font-size: 14px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(41, 34, 26, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(41, 34, 26, 0);
+  }
+}
+
+/* System dark mode: warm-inverted theme (catalog §4.5). hue-rotate keeps the
+   palette warm and preserves accent/category hues; applied to <html> so fixed
+   nav & modals stay put. */
+@media (prefers-color-scheme: dark) {
+  html {
+    filter: invert(0.92) hue-rotate(180deg) saturate(1.08);
+  }
+  html,
+  body {
+    background: #141019;
+  }
+}

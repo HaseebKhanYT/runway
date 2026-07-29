@@ -1,0 +1,203 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  margin-bottom: 5px;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border-input);
+  border-radius: 11px;
+  padding: 11px 13px;
+  font-size: 14px;
+  background: var(--input);
+  color: var(--ink);
+  outline: none;
+}
+.input:focus {
+  border-color: var(--ink);
+}
+
+.inputStrong {
+  composes: input;
+  border: 1.5px solid var(--border-input);
+  font-weight: 600;
+}
+
+.chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1.5px solid var(--border-input);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+.chip:hover {
+  border-color: var(--ink);
+}
+.chipActive {
+  composes: chip;
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.chipDashed {
+  composes: chip;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.btnPrimary {
+  width: 100%;
+  padding: 13px;
+  border-radius: 13px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 650;
+  font-size: 14px;
+  transition: filter 0.15s;
+}
+.btnPrimary:hover {
+  filter: brightness(1.25);
+}
+.btnPrimary:disabled {
+  background: var(--border);
+  color: var(--muted-2);
+  cursor: default;
+  filter: none;
+}
+
+.btnAccent {
+  composes: btnPrimary;
+  background: var(--accent);
+  color: #fff;
+}
+.btnAccent:hover {
+  filter: brightness(1.07);
+}
+
+.btnSuccess {
+  composes: btnPrimary;
+  background: var(--success);
+  color: #fff;
+}
+
+.btnDangerFill {
+  composes: btnPrimary;
+  background: var(--danger);
+  color: #fff;
+}
+
+.btnGhost {
+  padding: 9px 16px;
+  border-radius: 11px;
+  border: 1.5px solid var(--border-input);
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-2);
+  background: transparent;
+  transition: background 0.15s;
+}
+.btnGhost:hover {
+  background: var(--hover-soft);
+}
+
+.textBtn {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.textBtn:hover {
+  color: var(--ink);
+}
+
+.dashedCta {
+  width: 100%;
+  border: 1.5px dashed var(--border-dash);
+  border-radius: 11px;
+  padding: 9px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.dashedCta:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.segWrap {
+  display: inline-flex;
+  border: 1.5px solid var(--border-input);
+  border-radius: 11px;
+  overflow: hidden;
+  width: max-content;
+}
+.segBtn {
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-2);
+  background: transparent;
+}
+.segBtnActive {
+  composes: segBtn;
+  background: var(--ink);
+  color: var(--bg);
+}
+.segBtnActiveSuccess {
+  composes: segBtn;
+  background: var(--success);
+  color: #fff;
+}
+
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--chip);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+.iconBtn:hover {
+  background: var(--hover-danger);
+  color: var(--danger);
+}
+
+.progressTrack {
+  height: 8px;
+  border-radius: 5px;
+  background: var(--track);
+  overflow: hidden;
+  display: flex;
+}
+.progressFill {
+  height: 100%;
+  transition: width 0.35s;
+}

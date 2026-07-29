@@ -1,0 +1,65 @@
+/* Runway design tokens — catalog §4. Values are exact; do not improvise. */
+:root {
+  /* surfaces */
+  --bg: #f6f0e6;
+  --surface: #fffcf6;
+  --surface-alt: #fffdf8;
+  --input: #faf5eb;
+  --scrim: rgba(30, 24, 15, 0.45);
+
+  /* ink */
+  --ink: #29221a;
+  --ink-2: #5c5142;
+  --muted: #8d8070;
+  --muted-2: #a89b88;
+  --placeholder: #b3a48f;
+  --chevron: #c3b6a1;
+  --icon-idle: #d8cbb0;
+
+  /* borders & tracks */
+  --border: #e7dcc8;
+  --border-input: #e0d3bb;
+  --border-dash: #d9cbb0;
+  --border-dash-2: #d8c9ab;
+  --border-dash-3: #d5c5a8;
+  --rail: #e0d3bb;
+  --divider: #f0e7d6;
+  --divider-2: #eee2cf;
+  --track: #efe6d4;
+  --track-over: #f3d9cc;
+
+  /* fills / hovers */
+  --chip: #f1e8d8;
+  --chip-2: #eee7d9;
+  --hover-nav: #ede3d0;
+  --hover-soft: #efe6d4;
+  --hover-pill: #f6efe1;
+  --hover-stepper: #f3ead9;
+  --hover-drop: #f3ead8;
+  --hover-danger: #f7ebdd;
+  --acct-remove-hover: #f5ddd0;
+
+  /* accents */
+  --accent: #2e8c5a;
+  --link: #b45a26;
+  --link-hover: #8a3f14;
+  --danger: #c2410c;
+  --danger-hero: #c2542a;
+  --danger-hero-2: #e58c5b;
+  --success: #2e7d4f;
+  --goals: #8b6fd8;
+  --financed: #5c5142;
+
+  /* on-dark */
+  --on-dark: #f6f0e6;
+  --on-dark-muted: #b8a98f;
+  --on-dark-muted-2: #c9bda8;
+  --crunch-accent: #e58b6b;
+  --crunch-ok: #7fc79b;
+
+  /* misc */
+  --restore-border: #cbe0cf;
+  --restore-hover: #e9f2ea;
+  --err-bg: #f7e5da;
+  --bill-flag: #e5b48a;
+}
