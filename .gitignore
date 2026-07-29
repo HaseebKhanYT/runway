@@ -1,6 +1,10 @@
-# Design source material (kept local; catalog lives in docs/superpowers/specs/)
+# Design source material
 design-v1/
 runway-design-v1.zip
+
+# Planning docs and smoke-test scaffolding (kept local only, never committed)
+docs/
+e2e/
 
 # Dependencies / builds
 node_modules/
