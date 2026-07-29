@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'web is covered by the e2e smoke test'"
+    "test": "echo 'no unit tests in web; domain math is tested in @runway/shared'"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

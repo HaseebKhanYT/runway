@@ -2,6 +2,9 @@
   "name": "runway",
   "private": true,
   "packageManager": "pnpm@9.1.1",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
