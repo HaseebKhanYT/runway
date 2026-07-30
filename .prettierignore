@@ -1,0 +1,15 @@
+# Lockfiles — machine-generated, and reformatting them defeats --frozen-lockfile diffs
+pnpm-lock.yaml
+
+# Build output
+.next/
+dist/
+.turbo/
+coverage/
+.vercel/
+
+# Generated
+apps/web/next-env.d.ts
+
+# Local planning docs, never committed
+.claude/

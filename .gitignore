@@ -5,6 +5,7 @@ runway-design-v1.zip
 # Planning docs and smoke-test scaffolding (kept local only, never committed)
 docs/
 e2e/
+.claude/
 
 # Dependencies / builds
 node_modules/
@@ -21,3 +22,4 @@ dist/
 *.tsbuildinfo
 .clerk/
 .playwright-mcp/
+.vercel/

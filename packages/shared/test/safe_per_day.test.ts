@@ -94,7 +94,10 @@ describe('computeRunway', () => {
   it('bills due on/after payday are excluded from safe', () => {
     const state = makeState({
       profile: {...makeState({}).profile, nextPay: '2026-07-26'},
-      bills: [makeBill({id: 'b1', amount: 100, off: 10}), makeBill({id: 'b2', amount: 50, off: 12})],
+      bills: [
+        makeBill({id: 'b1', amount: 100, off: 10}),
+        makeBill({id: 'b2', amount: 50, off: 12}),
+      ],
     });
     const r = computeRunway(state, TODAY);
     expect(r.preBillsSum).toBe(0);
@@ -192,9 +195,7 @@ describe('computeRunway', () => {
 
   it('accounts pool into the balance', () => {
     const state = makeState({
-      accounts: [
-        {id: 'a1', name: 'Wallet cash', type: 'cash', balance: 250, logo: null},
-      ],
+      accounts: [{id: 'a1', name: 'Wallet cash', type: 'cash', balance: 250, logo: null}],
     });
     expect(computeRunway(state, TODAY).safe).toBe(1250);
   });

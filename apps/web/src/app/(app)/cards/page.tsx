@@ -288,7 +288,11 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
           </div>
         </div>
       ) : (
-        <button className={ui.btnPrimary} style={{padding: 9, borderRadius: 10}} onClick={() => setPaying(true)}>
+        <button
+          className={ui.btnPrimary}
+          style={{padding: 9, borderRadius: 10}}
+          onClick={() => setPaying(true)}
+        >
           Log payment
         </button>
       )}
@@ -379,7 +383,14 @@ export default function CardsPage() {
               padding: '12px 14px',
             }}
           >
-            <div style={{fontSize: 10.5, fontWeight: 700, letterSpacing: '.7px', color: 'var(--on-dark-muted)'}}>
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: '.7px',
+                color: 'var(--on-dark-muted)',
+              }}
+            >
               TOTAL DEBT
             </div>
             <div className="tnum" style={{fontSize: 20, fontWeight: 700}}>
@@ -398,7 +409,14 @@ export default function CardsPage() {
               padding: '12px 14px',
             }}
           >
-            <div style={{fontSize: 10.5, fontWeight: 700, letterSpacing: '.7px', color: 'var(--muted)'}}>
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: '.7px',
+                color: 'var(--muted)',
+              }}
+            >
               AVAILABLE
             </div>
             <div className="tnum" style={{fontSize: 20, fontWeight: 700}}>
@@ -464,7 +482,9 @@ export default function CardsPage() {
                 inputMode="decimal"
                 placeholder="$ limit"
                 value={form.limitRaw}
-                onChange={(e) => setForm({...form, limitRaw: e.target.value.replace(/[^0-9.]/g, '')})}
+                onChange={(e) =>
+                  setForm({...form, limitRaw: e.target.value.replace(/[^0-9.]/g, '')})
+                }
               />
               <input
                 className={`${ui.input} tnum`}
@@ -522,7 +542,10 @@ export default function CardsPage() {
                   and the payment tracks the balance as it moves
                 </div>
               </div>
-              <Toggle on={form.payInFull} onFlip={() => setForm({...form, payInFull: !form.payInFull})} />
+              <Toggle
+                on={form.payInFull}
+                onFlip={() => setForm({...form, payInFull: !form.payInFull})}
+              />
             </div>
 
             <div

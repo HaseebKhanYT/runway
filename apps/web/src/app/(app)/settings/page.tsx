@@ -13,7 +13,13 @@ function Panel({title, children}: {title: string; children: ReactNode}) {
   return (
     <div
       className={ui.card}
-      style={{breakInside: 'avoid', margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 14}}
+      style={{
+        breakInside: 'avoid',
+        margin: '0 0 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+      }}
     >
       <div style={{fontSize: 13, fontWeight: 700, letterSpacing: '.3px'}}>{title}</div>
       {children}
@@ -53,10 +59,7 @@ export default function SettingsPage() {
       .join('') || '?';
 
   const totalDebt = state.cards.reduce((s, c) => s + c.balance, 0);
-  const available = Math.max(
-    0,
-    state.cards.reduce((s, c) => s + c.limit, 0) - totalDebt,
-  );
+  const available = Math.max(0, state.cards.reduce((s, c) => s + c.limit, 0) - totalDebt);
   const cardsSummary =
     state.cards.length > 0
       ? `${state.cards.length} card${state.cards.length === 1 ? '' : 's'} · ${fm(totalDebt)} debt · ${fm(available)} available`
@@ -161,9 +164,11 @@ export default function SettingsPage() {
           </div>,
         )}
         <div>
-          {settingRow('Pay cycle', 'how often you get paid', (
-            <span style={{fontSize: 12, color: 'var(--muted)'}}>next {paydayLabel}</span>
-          ))}
+          {settingRow(
+            'Pay cycle',
+            'how often you get paid',
+            <span style={{fontSize: 12, color: 'var(--muted)'}}>next {paydayLabel}</span>,
+          )}
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7, marginTop: 10}}>
             {(
               [

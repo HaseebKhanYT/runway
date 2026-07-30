@@ -23,8 +23,18 @@ interface GroupSpec {
 }
 
 const GROUPS: GroupSpec[] = [
-  {kind: 'survival', title: 'SURVIVAL', addLabel: '+ Add survival bill', placeholder: 'Name — rent, water, insurance…'},
-  {kind: 'subscription', title: 'SUBSCRIPTIONS', addLabel: '+ Add subscription', placeholder: 'Name — or tap a preset'},
+  {
+    kind: 'survival',
+    title: 'SURVIVAL',
+    addLabel: '+ Add survival bill',
+    placeholder: 'Name — rent, water, insurance…',
+  },
+  {
+    kind: 'subscription',
+    title: 'SUBSCRIPTIONS',
+    addLabel: '+ Add subscription',
+    placeholder: 'Name — or tap a preset',
+  },
   {kind: 'debt', title: 'DEBT', addLabel: null, placeholder: ''},
 ];
 
@@ -68,11 +78,7 @@ function BillRow({
     else openModal('paySource', {billId: bill.id});
   };
 
-  const tag = bill.personal
-    ? '0% · personal'
-    : bill.cycle === 'yearly'
-      ? 'yearly'
-      : null;
+  const tag = bill.personal ? '0% · personal' : bill.cycle === 'yearly' ? 'yearly' : null;
 
   const onTouchStart = (e: TouchEvent) => {
     setTouchStart({x: e.touches[0].clientX, y: e.touches[0].clientY});
@@ -110,14 +116,26 @@ function BillRow({
                 setTx(0);
                 onEdit();
               }}
-              style={{width: 70, background: 'var(--ink-2)', color: 'var(--bg)', fontSize: 12.5, fontWeight: 650}}
+              style={{
+                width: 70,
+                background: 'var(--ink-2)',
+                color: 'var(--bg)',
+                fontSize: 12.5,
+                fontWeight: 650,
+              }}
             >
               Edit
             </button>
           )}
           <button
             onClick={() => remove.mutate()}
-            style={{width: 70, background: 'var(--danger)', color: '#fff', fontSize: 12.5, fontWeight: 650}}
+            style={{
+              width: 70,
+              background: 'var(--danger)',
+              color: '#fff',
+              fontSize: 12.5,
+              fontWeight: 650,
+            }}
           >
             Delete
           </button>
@@ -279,7 +297,15 @@ export default function BillsPage() {
   };
 
   const startAdd = (kind: BillKind) =>
-    setForm({billId: null, kind, name: '', amountRaw: '', dueRaw: '', cycle: 'monthly', payFrom: 'checking'});
+    setForm({
+      billId: null,
+      kind,
+      name: '',
+      amountRaw: '',
+      dueRaw: '',
+      cycle: 'monthly',
+      payFrom: 'checking',
+    });
 
   const startEdit = (bill: Bill) =>
     setForm({
@@ -440,7 +466,9 @@ export default function BillsPage() {
                         if (e.key === 'Escape') setForm(null);
                       }}
                     />
-                    <div style={{display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 90}}>
+                    <div
+                      style={{display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 90}}
+                    >
                       <span style={{fontSize: 14, fontWeight: 600, color: 'var(--muted)'}}>$</span>
                       <input
                         className={`${ui.input} tnum`}

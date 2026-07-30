@@ -54,7 +54,8 @@ flowsRoutes.post('/bills/:id/pay', zValidator('json', payBillSchema), async (c) 
         userId,
         label: bill.name,
         amount: -amount,
-        cat: bill.kind === 'debt' ? 'Debt' : bill.kind === 'subscription' ? 'Subscription' : 'Bills',
+        cat:
+          bill.kind === 'debt' ? 'Debt' : bill.kind === 'subscription' ? 'Subscription' : 'Bills',
         postedAt: new Date(),
         src: resolved.label,
         billId: bill.id,

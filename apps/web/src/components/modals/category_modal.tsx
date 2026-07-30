@@ -78,8 +78,7 @@ export function CategoryModal({
                   height: 30,
                   borderRadius: '50%',
                   background: c,
-                  boxShadow:
-                    color === c ? `0 0 0 2.5px var(--surface), 0 0 0 4.5px ${c}` : 'none',
+                  boxShadow: color === c ? `0 0 0 2.5px var(--surface), 0 0 0 4.5px ${c}` : 'none',
                 }}
               />
             ))}
@@ -99,7 +98,11 @@ export function CategoryModal({
             />
           </div>
         </div>
-        <button className={ui.btnPrimary} disabled={!name.trim() || save.isPending} onClick={submit}>
+        <button
+          className={ui.btnPrimary}
+          disabled={!name.trim() || save.isPending}
+          onClick={submit}
+        >
           Save category
         </button>
         {editing && !editing.locked && (
