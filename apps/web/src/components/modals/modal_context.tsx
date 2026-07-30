@@ -2,13 +2,7 @@
 
 import {createContext, useCallback, useContext, useMemo, useState, type ReactNode} from 'react';
 
-export type ModalName =
-  | 'addExpense'
-  | 'category'
-  | 'accounts'
-  | 'paySource'
-  | 'payday'
-  | 'loan';
+export type ModalName = 'addExpense' | 'category' | 'accounts' | 'paySource' | 'payday' | 'loan';
 
 export interface ModalRequest {
   name: ModalName;

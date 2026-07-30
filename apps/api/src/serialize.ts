@@ -1,10 +1,5 @@
 import type {Account, Bill, Card, Category, Goal, Prisma, Profile, Txn} from '@prisma/client';
-import {
-  daysUntil,
-  type AppState,
-  type Cadence,
-  type CardReward,
-} from '@runway/shared';
+import {daysUntil, type AppState, type Cadence, type CardReward} from '@runway/shared';
 
 function num(d: Prisma.Decimal | null): number {
   return d == null ? 0 : Number(d);

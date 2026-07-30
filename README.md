@@ -7,10 +7,10 @@ spend, every day — after bills, after goals.
 
 pnpm + Turborepo monorepo:
 
-| Package | What it is |
-|---|---|
-| `apps/web` | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query |
-| `apps/api` | Hono REST API — Clerk JWT verification, Prisma, transactional money flows |
+| Package           | What it is                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query                                                |
+| `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows                                   |
 | `packages/shared` | Pure domain math (safe-per-day, goals, cards, crunch, planner), Zod schemas, formatting — used by both apps |
 
 Postgres 16 runs in Docker.
@@ -64,12 +64,12 @@ Add a Postgres database, then a service pointed at this repo. `railway.json`
 supplies the build/start commands and the `/health` check, so only environment
 variables need setting:
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
-| `CLERK_SECRET_KEY` | Clerk production secret (`sk_live_…`) |
-| `WEB_ORIGIN` | the deployed web origin, e.g. `https://example.com` |
-| `NODE_ENV` | `production` |
+| Variable           | Value                                                         |
+| ------------------ | ------------------------------------------------------------- |
+| `DATABASE_URL`     | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
+| `CLERK_SECRET_KEY` | Clerk production secret (`sk_live_…`)                         |
+| `WEB_ORIGIN`       | the deployed web origin, e.g. `https://example.com`           |
+| `NODE_ENV`         | `production`                                                  |
 
 `WEB_ORIGIN` is required: it is both the CORS allowlist and the set of
 authorized parties for Clerk token verification, so a token minted for another
@@ -83,15 +83,15 @@ changes apply on release.
 Create a project from this repo with **Root Directory** set to `apps/web` —
 Vercel then installs from the pnpm workspace root automatically.
 
-| Variable | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | the deployed Railway API origin |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk production key (`pk_live_…`) |
-| `CLERK_SECRET_KEY` | Clerk production secret (`sk_live_…`) |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/runway` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/runway` |
+| Variable                                          | Value                                 |
+| ------------------------------------------------- | ------------------------------------- |
+| `NEXT_PUBLIC_API_URL`                             | the deployed Railway API origin       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`               | Clerk production key (`pk_live_…`)    |
+| `CLERK_SECRET_KEY`                                | Clerk production secret (`sk_live_…`) |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in`                            |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`                   | `/sign-up`                            |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/runway`                             |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/runway`                             |
 
 `NEXT_PUBLIC_*` values are inlined into the client bundle at build time —
 changing one requires a redeploy, not just an env var edit.

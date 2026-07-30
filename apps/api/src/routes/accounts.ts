@@ -11,17 +11,27 @@ accountsRoutes.post('/accounts', zValidator('json', accountUpsertSchema), async 
   const userId = c.get('userId');
   const body = c.req.valid('json');
   await prisma.account.create({
-    data: {userId, name: body.name, type: body.type, balance: body.balance, logo: body.logo ?? null},
+    data: {
+      userId,
+      name: body.name,
+      type: body.type,
+      balance: body.balance,
+      logo: body.logo ?? null,
+    },
   });
   return c.json(await loadState(userId));
 });
 
-accountsRoutes.patch('/accounts/:id', zValidator('json', accountUpsertSchema.partial()), async (c) => {
-  const userId = c.get('userId');
-  const body = c.req.valid('json');
-  await prisma.account.updateMany({where: {id: c.req.param('id'), userId}, data: body});
-  return c.json(await loadState(userId));
-});
+accountsRoutes.patch(
+  '/accounts/:id',
+  zValidator('json', accountUpsertSchema.partial()),
+  async (c) => {
+    const userId = c.get('userId');
+    const body = c.req.valid('json');
+    await prisma.account.updateMany({where: {id: c.req.param('id'), userId}, data: body});
+    return c.json(await loadState(userId));
+  },
+);
 
 accountsRoutes.delete('/accounts/:id', async (c) => {
   const userId = c.get('userId');

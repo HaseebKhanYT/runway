@@ -53,7 +53,8 @@ export function AddExpenseModal({
     return `Add ${fm(amount)}`;
   }, [amount, mode, goal, cat]);
 
-  const overBudget = mode === 'expense' && cat && cat.budget > 0 && cat.budget - cat.spent - amount < 0;
+  const overBudget =
+    mode === 'expense' && cat && cat.budget > 0 && cat.budget - cat.spent - amount < 0;
   const btnClass =
     amount <= 0
       ? ui.btnPrimary

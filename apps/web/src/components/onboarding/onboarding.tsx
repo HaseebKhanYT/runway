@@ -109,7 +109,10 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     if (existing) {
       setBills(bills.filter((b) => b !== existing));
     } else {
-      setBills([...bills, {name: preset.name, amount: preset.amount, dueDay: 15, kind: 'subscription'}]);
+      setBills([
+        ...bills,
+        {name: preset.name, amount: preset.amount, dueDay: 15, kind: 'subscription'},
+      ]);
     }
   };
 

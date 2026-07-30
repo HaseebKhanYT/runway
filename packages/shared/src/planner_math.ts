@@ -92,7 +92,13 @@ export function computePlan(
 
   const isNecessity = input.kind === 'necessity';
   const perLine = buildPerLine(input.kind, per, free, spare, over, cushioned, gap0);
-  const perColor = isNecessity ? (over && !covered ? '#c2410c' : '#2e7d4f') : over ? '#c2410c' : '#8b6fd8';
+  const perColor = isNecessity
+    ? over && !covered
+      ? '#c2410c'
+      : '#2e7d4f'
+    : over
+      ? '#c2410c'
+      : '#8b6fd8';
 
   const levers: PlanLever[] = [];
   if (isNecessity && gap0 > 0) {
@@ -122,7 +128,8 @@ export function computePlan(
         Math.floor(c.limit - c.balance),
         Math.ceil(input.target),
       );
-      const cardInterest = cardEff === 0 ? 0 : Math.ceil(((cardFin * cardEff) / 100) * (months / 24));
+      const cardInterest =
+        cardEff === 0 ? 0 : Math.ceil(((cardFin * cardEff) / 100) * (months / 24));
       levers.push({
         kind: 'card',
         id: c.id,

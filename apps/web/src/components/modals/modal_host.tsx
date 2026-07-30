@@ -44,7 +44,11 @@ export function ModalHost({state}: {state: AppState}) {
             return <PaydayModal key={key} state={state} />;
           case 'loan':
             return (
-              <LoanModal key={key} state={state} prefillAmount={p.prefillAmount as number | undefined} />
+              <LoanModal
+                key={key}
+                state={state}
+                prefillAmount={p.prefillAmount as number | undefined}
+              />
             );
           default:
             return null;

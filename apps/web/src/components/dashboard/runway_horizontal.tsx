@@ -145,9 +145,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   style={{
                     fontSize: 12.5,
                     fontWeight: 650,
-                    ...(bill.paid
-                      ? {textDecoration: 'line-through', color: 'var(--muted-2)'}
-                      : {}),
+                    ...(bill.paid ? {textDecoration: 'line-through', color: 'var(--muted-2)'} : {}),
                   }}
                 >
                   {bill.name}

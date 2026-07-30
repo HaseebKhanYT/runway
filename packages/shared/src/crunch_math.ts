@@ -108,7 +108,9 @@ export function computeCrunch(
   const selectedCard = selection.cardId
     ? state.cards.find((c) => c.id === selection.cardId)
     : undefined;
-  const advance = selectedCard ? Math.min(rem, Math.floor(selectedCard.limit - selectedCard.balance)) : 0;
+  const advance = selectedCard
+    ? Math.min(rem, Math.floor(selectedCard.limit - selectedCard.balance))
+    : 0;
   const covered = on && rem - advance <= 0 && (freed > 0 || advance > 0);
 
   let gapLine: string;

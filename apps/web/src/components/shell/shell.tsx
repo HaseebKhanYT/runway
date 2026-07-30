@@ -132,7 +132,9 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
           }}
         >
           <div>
-            <div style={{fontSize: 'clamp(22px,3vw,28px)', fontWeight: 700, letterSpacing: '-.4px'}}>
+            <div
+              style={{fontSize: 'clamp(22px,3vw,28px)', fontWeight: 700, letterSpacing: '-.4px'}}
+            >
               {PAGE_TITLES[view]}
             </div>
             <div style={{fontSize: 13, color: 'var(--muted)', marginTop: 2}}>{vm.todayLabel}</div>
