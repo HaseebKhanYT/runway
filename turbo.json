@@ -20,12 +20,29 @@
       "cache": false,
       "persistent": true
     },
+    "db:generate": {
+      "cache": false,
+      "inputs": ["prisma/schema.prisma"],
+      "env": ["DATABASE_URL"]
+    },
     "test": {
+      "dependsOn": []
+    },
+    "test:integration": {
       "dependsOn": [],
+      "cache": false,
       "env": ["DATABASE_URL", "DEV_AUTH_BYPASS"]
     },
     "typecheck": {
       "dependsOn": []
+    },
+    "@runway/api#typecheck": {
+      "dependsOn": ["@runway/api#db:generate"]
+    },
+    "@runway/api#test:integration": {
+      "dependsOn": ["@runway/api#db:generate"],
+      "cache": false,
+      "env": ["DATABASE_URL", "DEV_AUTH_BYPASS"]
     }
   }
 }
