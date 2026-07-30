@@ -1,0 +1,102 @@
+name: CI
+
+# No `paths:` filters anywhere. Once `verify` and `integration` are required
+# status checks, a workflow that skips itself never reports, and the PR blocks
+# forever waiting for a check that will not arrive.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseding a push to a shared branch would leave that commit unverified,
+  # so only PR runs are cancellable.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Two jobs, not four. `pnpm install` is 40-60s and is paid per job, while the
+  # whole suite runs in under five seconds — splitting further buys nothing.
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate validates the datasource URL, so it has to parse. No
+      # database is contacted in this job.
+      DATABASE_URL: postgresql://runway:runway@localhost:5432/runway
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Every step runs even after an earlier one fails, so a single run
+      # surfaces every problem instead of one per push.
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck
+
+      - name: Unit tests
+        if: ${{ !cancelled() }}
+        run: pnpm test
+
+      # Only the API bundle. Vercel already builds apps/web per PR and posts
+      # its own status check.
+      - name: Build API
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @runway/api build
+
+      - name: Format
+        if: ${{ !cancelled() }}
+        run: pnpm format:check
+
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://runway:runway@localhost:5432/runway
+      TZ: UTC
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: runway
+          POSTGRES_PASSWORD: runway
+          POSTGRES_DB: runway
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # prisma generate needs no explicit step — turbo pulls it in through the
+      # @runway/api#db:generate dependency.
+      - name: Migrate
+        run: pnpm --filter @runway/api exec prisma migrate deploy
+
+      - name: Integration tests
+        run: pnpm test:integration
