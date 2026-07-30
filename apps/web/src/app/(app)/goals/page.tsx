@@ -75,7 +75,15 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
     ? new Date(goal.due + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
     : null;
   const checks = goal.due
-    ? Math.max(1, Math.floor(Math.max(0, Math.round((Date.parse(goal.due + 'T00:00:00') - today.getTime()) / 86400000)) / (cadence === 'weekly' ? 7 : cadence === 'monthly' ? 30 : 14)))
+    ? Math.max(
+        1,
+        Math.floor(
+          Math.max(
+            0,
+            Math.round((Date.parse(goal.due + 'T00:00:00') - today.getTime()) / 86400000),
+          ) / (cadence === 'weekly' ? 7 : cadence === 'monthly' ? 30 : 14),
+        ),
+      )
     : null;
 
   const perLine =
@@ -109,8 +117,14 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
       </div>
 
       <div className={ui.progressTrack} style={{height: 10, borderRadius: 6}}>
-        <div className={ui.progressFill} style={{width: `${finPct}%`, background: 'var(--financed)'}} />
-        <div className={ui.progressFill} style={{width: `${payPct}%`, background: 'var(--goals)'}} />
+        <div
+          className={ui.progressFill}
+          style={{width: `${finPct}%`, background: 'var(--financed)'}}
+        />
+        <div
+          className={ui.progressFill}
+          style={{width: `${payPct}%`, background: 'var(--goals)'}}
+        />
       </div>
       {goal.financed > 0 && (
         <div style={{display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--muted)'}}>
@@ -196,7 +210,14 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
                   }
                   if (e.key === 'Escape') setSettingAside(false);
                 }}
-                style={{border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: 14, fontWeight: 600}}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  width: '100%',
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
               />
             </div>
             <button
@@ -251,7 +272,8 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
                 value={editPerRaw}
                 onChange={(e) => setEditPerRaw(e.target.value.replace(/[^0-9.]/g, ''))}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') patch.mutate(undefined, {onSuccess: () => setEditing(false)});
+                  if (e.key === 'Enter')
+                    patch.mutate(undefined, {onSuccess: () => setEditing(false)});
                   if (e.key === 'Escape') setEditing(false);
                 }}
               />
@@ -377,7 +399,10 @@ function PlannerCard({state}: {state: AppState}) {
         </div>
       </div>
       <div className={ui.segWrap} style={{borderRadius: 10}}>
-        <button className={kind === 'wish' ? ui.segBtnActive : ui.segBtn} onClick={() => setKind('wish')}>
+        <button
+          className={kind === 'wish' ? ui.segBtnActive : ui.segBtn}
+          onClick={() => setKind('wish')}
+        >
           a wish
         </button>
         <button
@@ -390,7 +415,7 @@ function PlannerCard({state}: {state: AppState}) {
       <div style={{fontSize: 11.5, color: 'var(--muted)'}}>
         {kind === 'wish'
           ? 'flexible — adjust the date or amount whenever you like'
-          : "date & amount are fixed — we find the money instead"}
+          : 'date & amount are fixed — we find the money instead'}
       </div>
       <input
         className={ui.input}
@@ -484,7 +509,9 @@ function PlannerCard({state}: {state: AppState}) {
                 onClick={() => {
                   if (lever.kind === 'pause') {
                     setPausedIds((ids) =>
-                      ids.includes(lever.id) ? ids.filter((x) => x !== lever.id) : [...ids, lever.id],
+                      ids.includes(lever.id)
+                        ? ids.filter((x) => x !== lever.id)
+                        : [...ids, lever.id],
                     );
                   } else if (lever.kind === 'card') {
                     setCardId(cardId === lever.id ? null : lever.id);
@@ -521,7 +548,9 @@ function PlannerCard({state}: {state: AppState}) {
                   {selected ? '✓' : ''}
                 </span>
                 <span style={{minWidth: 0}}>
-                  <span style={{display: 'block', fontSize: 13, fontWeight: 650}}>{lever.title}</span>
+                  <span style={{display: 'block', fontSize: 13, fontWeight: 650}}>
+                    {lever.title}
+                  </span>
                   <span style={{display: 'block', fontSize: 11.5, color: 'var(--muted)'}}>
                     {lever.sub}
                   </span>
@@ -529,7 +558,13 @@ function PlannerCard({state}: {state: AppState}) {
               </button>
             );
           })}
-          <div style={{fontSize: 12.5, fontWeight: 650, color: plan.covered ? 'var(--success)' : 'var(--danger)'}}>
+          <div
+            style={{
+              fontSize: 12.5,
+              fontWeight: 650,
+              color: plan.covered ? 'var(--success)' : 'var(--danger)',
+            }}
+          >
             {plan.gapLine}
           </div>
         </div>

@@ -145,9 +145,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    ...(bill.paid
-                      ? {textDecoration: 'line-through', color: 'var(--muted-2)'}
-                      : {}),
+                    ...(bill.paid ? {textDecoration: 'line-through', color: 'var(--muted-2)'} : {}),
                   }}
                 >
                   {bill.name}

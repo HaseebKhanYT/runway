@@ -30,8 +30,5 @@ export async function loadState(userId: string, db: PrismaTx = prisma): Promise<
     db.goal.findMany({where: {userId}, orderBy: {name: 'asc'}}),
     db.card.findMany({where: {userId}, orderBy: {balance: 'desc'}}),
   ]);
-  return serializeState(
-    {profile, accounts, bills, cats, txns, deletedTxns, goals, cards},
-    today,
-  );
+  return serializeState({profile, accounts, bills, cats, txns, deletedTxns, goals, cards}, today);
 }

@@ -68,49 +68,45 @@ cardsRoutes.delete('/cards/:id', async (c) => {
   return c.json(await loadState(userId));
 });
 
-cardsRoutes.post(
-  '/cards/:id/log-payment',
-  zValidator('json', cardLogPaymentSchema),
-  async (c) => {
-    const userId = c.get('userId');
-    const id = c.req.param('id');
-    const {amount, source} = c.req.valid('json');
-    await prisma.$transaction(async (tx) => {
-      const card = await tx.card.findFirst({where: {id, userId}});
-      if (!card) return;
-      await tx.card.update({
-        where: {id},
-        data: {balance: {decrement: amount}, balanceUpdatedAt: new Date()},
-      });
-      let src = 'Main checking';
-      if (source !== 'checking') {
-        const account = await tx.account.findFirst({where: {id: source, userId}});
-        if (account) {
-          await tx.account.update({
-            where: {id: account.id},
-            data: {balance: {decrement: amount}},
-          });
-          src = account.name;
-        }
-      } else {
-        await tx.profile.update({
-          where: {userId},
-          data: {primaryBalance: {decrement: amount}},
-        });
-      }
-      await tx.txn.create({
-        data: {
-          userId,
-          label: `${card.name} payment`,
-          amount: -amount,
-          cat: 'Debt',
-          postedAt: new Date(),
-          src,
-          cardId: card.id,
-        },
-      });
-      await syncCardBill(tx, userId, id);
+cardsRoutes.post('/cards/:id/log-payment', zValidator('json', cardLogPaymentSchema), async (c) => {
+  const userId = c.get('userId');
+  const id = c.req.param('id');
+  const {amount, source} = c.req.valid('json');
+  await prisma.$transaction(async (tx) => {
+    const card = await tx.card.findFirst({where: {id, userId}});
+    if (!card) return;
+    await tx.card.update({
+      where: {id},
+      data: {balance: {decrement: amount}, balanceUpdatedAt: new Date()},
     });
-    return c.json(await loadState(userId));
-  },
-);
+    let src = 'Main checking';
+    if (source !== 'checking') {
+      const account = await tx.account.findFirst({where: {id: source, userId}});
+      if (account) {
+        await tx.account.update({
+          where: {id: account.id},
+          data: {balance: {decrement: amount}},
+        });
+        src = account.name;
+      }
+    } else {
+      await tx.profile.update({
+        where: {userId},
+        data: {primaryBalance: {decrement: amount}},
+      });
+    }
+    await tx.txn.create({
+      data: {
+        userId,
+        label: `${card.name} payment`,
+        amount: -amount,
+        cat: 'Debt',
+        postedAt: new Date(),
+        src,
+        cardId: card.id,
+      },
+    });
+    await syncCardBill(tx, userId, id);
+  });
+  return c.json(await loadState(userId));
+});

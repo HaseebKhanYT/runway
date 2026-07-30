@@ -76,9 +76,7 @@ export function CrunchPanel({state, vm}: {state: AppState; vm: ViewModel}) {
   }));
 
   const toggleGoal = (id: string) => {
-    setPausedGoalIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
-    );
+    setPausedGoalIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   };
 
   return (

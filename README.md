@@ -7,10 +7,10 @@ spend, every day — after bills, after goals.
 
 pnpm + Turborepo monorepo:
 
-| Package | What it is |
-|---|---|
-| `apps/web` | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query |
-| `apps/api` | Hono REST API — Clerk JWT verification, Prisma, transactional money flows |
+| Package           | What it is                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query                                                |
+| `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows                                   |
 | `packages/shared` | Pure domain math (safe-per-day, goals, cards, crunch, planner), Zod schemas, formatting — used by both apps |
 
 Postgres 16 runs in Docker.
@@ -39,37 +39,134 @@ pnpm dev                        # api :8787 + web :3000
 
 ## Tests
 
+The suite is split by whether it needs a database:
+
 ```bash
-pnpm test         # shared domain math (52) + api flows (21), Vitest
+pnpm test              # DB-free: shared math (52) + api pure modules (19)
+pnpm test:integration  # needs Postgres: api flows (21)
 pnpm typecheck
 ```
 
-API tests run against the dev database using `DEV_AUTH_BYPASS=1` (an
+`pnpm test` is the one that matters for a fresh clone — it passes with no
+Docker running and no `DATABASE_URL` set, which is what lets CI verify a PR
+without provisioning a database. Vitest 2.1.9 predates `projects`, so the split
+is carried by separate config files, and the partition lives entirely in their
+include globs:
+
+| Config                                  | Glob                     |                   |
+| --------------------------------------- | ------------------------ | ----------------- |
+| `packages/shared/vitest.config.ts`      | `test/**/*.test.ts`      | recursive         |
+| `apps/api/vitest.unit.config.ts`        | `test/unit/**/*.test.ts` | recursive         |
+| `apps/api/vitest.integration.config.ts` | `test/*.test.ts`         | **not** recursive |
+
+The non-recursive integration glob is what keeps `test/unit/` out of it. A new
+`apps/api` test therefore belongs in `test/unit/` (no database) or directly in
+`test/` (database) — a subdirectory other than `unit/` is run by neither.
+
+Both unit configs pin `TZ: 'UTC'`, because several modules read local date
+parts. `apps/api/test/unit/dates.test.ts` opens with a tripwire asserting the
+pin took effect, so a config regression fails loudly instead of silently
+changing what the tests mean.
+
+`prisma generate` is wired as a turbo task dependency (`@runway/api#db:generate`)
+rather than a `pre*` script, since pnpm 9 does not run those by default. It
+cannot be cached: Prisma writes into `node_modules/.pnpm/…/.prisma/client`,
+outside the package, so turbo has no output to declare.
+
+Integration tests run against the dev database using `DEV_AUTH_BYPASS=1` (an
 `x-dev-user` header stands in for a Clerk session). The bypass is ignored
 whenever `NODE_ENV=production`, and the API refuses to boot in production if
 it is set at all.
 
+## Branching
+
+`develop` is the default branch and the integration branch. `main` is
+release-only.
+
+```
+feature branch ──PR──> develop ──release PR──> main
+                          │                      │
+                          ▼                      ▼
+                       staging               production
+```
+
+Everything lands on `develop` first, where it deploys to the staging stack.
+Shipping is a `develop → main` pull request. Nothing is pushed to `main`
+directly — the release PR wants a merge commit, so `main` deliberately does
+**not** require linear history.
+
+### CI
+
+`.github/workflows/ci.yml` runs on push and pull request against `main` and
+`develop`, in two jobs whose names are also the required status check contexts:
+
+| Job           | Does                                                                        |
+| ------------- | --------------------------------------------------------------------------- |
+| `verify`      | `typecheck` → `test` → build the API bundle → `format:check`                |
+| `integration` | `postgres:16-alpine` service → `prisma migrate deploy` → `test:integration` |
+
+Two jobs rather than four: `pnpm install` costs 40–60s and is paid per job,
+while the whole suite runs in under five seconds. Every `verify` step carries
+`if: ${{ !cancelled() }}` so one run reports every problem instead of one
+problem per push. There are deliberately **no `paths:` filters** — a required
+check that skips itself never reports, and the PR blocks forever.
+
+Only the API bundle is built in CI; Vercel already builds `apps/web` per PR and
+posts its own status.
+
+`.nvmrc` pins Node 24. Both Vercel and Railway's Railpack read it, so it is the
+single source of truth for the runtime version across CI and both platforms.
+
 ## Deployment
 
-`apps/web` → Vercel. `apps/api` + Postgres → Railway. Both auto-deploy from
-`main`.
+`apps/web` → Vercel. `apps/api` + Postgres → Railway. Each has two environments,
+driven by branch:
+
+| Branch    | Vercel                 | Railway                          | Clerk instance |
+| --------- | ---------------------- | -------------------------------- | -------------- |
+| `main`    | Production             | `production` environment         | Production     |
+| `develop` | Preview (branch alias) | `staging` environment            | Development    |
+| PR branch | Preview                | — (calls staging, CORS-rejected) | Development    |
+
+The staging URL is the Vercel branch alias for `develop`, behind Vercel's SSO
+gate. There is no custom domain for it and no DNS work.
+
+Pull request previews build and render, but their API calls are rejected by the
+staging API's CORS allowlist, which only names the `develop` alias. That is
+accepted rather than fixed: it keeps `WEB_ORIGIN` a closed list.
 
 ```bash
 pnpm build     # verify both production builds before deploying
 ```
 
+Never run `vercel --prod` from a working tree. Production is whatever `main`
+builds; a local promote silently detaches production from the branch, and on
+the Hobby plan `vercel promote` / `vercel rollback` are not available to undo
+it. Merging the release PR is the only way production changes.
+
 ### Railway (API + database)
 
-Add a Postgres database, then a service pointed at this repo. `railway.json`
-supplies the build/start commands and the `/health` check, so only environment
-variables need setting:
+Two **environments** in one project, `production` and `staging`, each with its
+own `runway` service, its own `Postgres`, its own private network and its own
+volume. `railway.json` at the repo root applies to both, so it supplies the
+build/start commands and the `/health` check and only variables differ:
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
-| `CLERK_SECRET_KEY` | Clerk production secret (`sk_live_…`) |
-| `WEB_ORIGIN` | the deployed web origin, e.g. `https://example.com` |
-| `NODE_ENV` | `production` |
+| Variable           | `production`                 | `staging`                          |
+| ------------------ | ---------------------------- | ---------------------------------- |
+| `DATABASE_URL`     | `${{Postgres.DATABASE_URL}}` | same reference, different database |
+| `CLERK_SECRET_KEY` | `sk_live_…`                  | `sk_test_…`                        |
+| `WEB_ORIGIN`       | the production web origin    | the Vercel `develop` branch alias  |
+| `NODE_ENV`         | `production`                 | `production`                       |
+
+The `${{Postgres.DATABASE_URL}}` reference resolves per environment, so it needs
+no edit when the environment is duplicated.
+
+Staging keeps `NODE_ENV=production` deliberately. That keeps
+`assertProductionConfig()` armed and `DEV_AUTH_BYPASS` inert on a host that is
+reachable from the internet — staging should fail the same way production would.
+
+`PORT` is not set: Railway injects it and `apps/api/src/index.ts` reads
+`process.env.PORT ?? 8787`.
 
 `WEB_ORIGIN` is required: it is both the CORS allowlist and the set of
 authorized parties for Clerk token verification, so a token minted for another
@@ -78,32 +175,85 @@ application is rejected. Multiple origins are comma-separated.
 The start command runs `prisma migrate deploy` before booting, so schema
 changes apply on release.
 
+Which branch an environment tracks is a **service setting, not a file** — the
+`staging` environment's `runway` service has its source branch set to `develop`.
+Read the current wiring with:
+
+```bash
+railway environment list
+railway domain list --service runway --environment staging
+railway variable list --service runway --environment staging
+```
+
 ### Vercel (web)
 
-Create a project from this repo with **Root Directory** set to `apps/web` —
-Vercel then installs from the pnpm workspace root automatically.
+One project, **Root Directory** `apps/web` — Vercel then installs from the pnpm
+workspace root automatically.
 
-| Variable | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | the deployed Railway API origin |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk production key (`pk_live_…`) |
-| `CLERK_SECRET_KEY` | Clerk production secret (`sk_live_…`) |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/runway` |
-| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/runway` |
+The variables that differ by scope are the three that decide _which backend and
+which Clerk instance a build talks to_:
+
+| Variable                            | Production   | Preview (incl. `develop`) |
+| ----------------------------------- | ------------ | ------------------------- |
+| `NEXT_PUBLIC_API_URL`               | prod Railway | **staging Railway**       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_live_…`  | **`pk_test_…`**           |
+| `CLERK_SECRET_KEY`                  | `sk_live_…`  | **`sk_test_…`**           |
+
+The rest are the same in both scopes:
+
+| Variable                                          | Value      |
+| ------------------------------------------------- | ---------- |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `/sign-in` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`                   | `/sign-up` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/runway`  |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/runway`  |
+
+Splitting `NEXT_PUBLIC_API_URL` by scope is the change that stops preview
+deployments writing to the production database. Before it, one shared value
+meant every preview's API calls landed on production.
 
 `NEXT_PUBLIC_*` values are inlined into the client bundle at build time —
 changing one requires a redeploy, not just an env var edit.
 
-### Clerk production instance
+### Settings that live only in a dashboard
 
-A production instance requires a custom domain: Clerk issues DNS records
-(including a `CNAME` for its Frontend API) that must be added at your
-registrar, and production keys only work on that domain. Create the production
-instance from the Clerk dashboard, add its DNS records, then use its `pk_live_`
-/ `sk_live_` keys above. Until DNS verifies, the dev instance keys keep
-working on localhost.
+None of these are expressible in `railway.json` or `vercel.json`, so they exist
+nowhere in this repo. They are listed here so they are not tribal knowledge:
+
+| Setting                                            | Where                                     | Value                          |
+| -------------------------------------------------- | ----------------------------------------- | ------------------------------ |
+| Root Directory                                     | Vercel → Settings → General               | `apps/web`                     |
+| Production Branch                                  | Vercel → Settings → Git                   | `main`                         |
+| Per-scope environment variables                    | Vercel → Settings → Environment Variables | see the table above            |
+| Source branch for the `staging` service            | Railway → staging → runway → Settings     | `develop`                      |
+| Default branch, auto-merge, delete-branch-on-merge | GitHub → Settings → General               | `develop`, on, on              |
+| Required status checks (`verify`, `integration`)   | GitHub → Settings → Rules                 | rulesets on `main` + `develop` |
+
+Vercel's **Production Branch** is independent of GitHub's default branch, so it
+stays `main` even though GitHub now defaults to `develop`. Worth re-checking
+after any change to the default branch.
+
+If a `vercel.json` is ever added it must live at **`apps/web/vercel.json`** —
+Root Directory is `apps/web`, so a repo-root file is silently ignored.
+
+### Clerk instances
+
+Every Clerk application has two instances, and this project uses both.
+
+**Production** requires a custom domain: Clerk issues DNS records (including a
+`CNAME` for its Frontend API) that must be added at your registrar, and
+production keys only work on that domain. Create the production instance from
+the Clerk dashboard, add its DNS records, then use its `pk_live_` / `sk_live_`
+keys for Vercel's Production scope and Railway's `production` environment.
+
+**Development** is why staging works at all. Dev instances accept arbitrary
+origins, so its `pk_test_` / `sk_test_` keys work on `*.vercel.app` branch
+aliases and on localhost — which the production instance cannot do, since it is
+pinned to the DNS-verified domain. Those keys go to Vercel's Preview scope and
+Railway's `staging` environment.
+
+There is no Clerk CLI. Both key pairs are copied by hand from the dashboard
+under API Keys, after switching instances with the selector at the top.
 
 ## Plaid (reserved)
 

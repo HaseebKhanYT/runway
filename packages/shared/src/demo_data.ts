@@ -154,7 +154,14 @@ function cat(id: string, name: string, budget: number, spent: number, color: str
   return {id, name, budget, spent, color, locked: false, sortOrder: sort};
 }
 
-function txn(id: string, label: string, amount: number, category: string, off: number, today: Date) {
+function txn(
+  id: string,
+  label: string,
+  amount: number,
+  category: string,
+  off: number,
+  today: Date,
+) {
   return {
     id,
     label,

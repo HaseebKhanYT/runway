@@ -9,7 +9,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "typecheck": "turbo typecheck"
+    "test:integration": "turbo test:integration",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "prettier": "^3.3.0",

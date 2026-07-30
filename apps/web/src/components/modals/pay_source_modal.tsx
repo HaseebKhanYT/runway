@@ -54,7 +54,9 @@ export function PaySourceModal({state, billId}: {state: AppState; billId: string
       glyphFg: '#f6f0e6',
       nowLine: `${fm(a.balance)} now`,
       afterLine:
-        a.balance - amount >= 0 ? `${fm(a.balance - amount)} left` : `${fm(a.balance - amount)} — short`,
+        a.balance - amount >= 0
+          ? `${fm(a.balance - amount)} left`
+          : `${fm(a.balance - amount)} — short`,
       afterColor: a.balance - amount >= 0 ? 'var(--muted)' : 'var(--danger)',
     })),
     ...state.cards

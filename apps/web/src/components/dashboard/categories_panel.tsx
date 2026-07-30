@@ -36,7 +36,11 @@ export function CategoriesPanel({state}: {state: AppState}) {
         {state.cats.map((cat) => {
           const over = cat.budget > 0 && cat.spent > cat.budget;
           const pct =
-            cat.budget > 0 ? Math.min(100, (cat.spent / cat.budget) * 100) : cat.spent > 0 ? 100 : 0;
+            cat.budget > 0
+              ? Math.min(100, (cat.spent / cat.budget) * 100)
+              : cat.spent > 0
+                ? 100
+                : 0;
           return (
             <div key={cat.id}>
               <div

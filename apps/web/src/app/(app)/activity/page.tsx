@@ -181,7 +181,12 @@ export default function ActivityPage() {
                   </span>
                 </div>
                 {group.txns.map((t, i) => (
-                  <ActivityRow key={t.id} txn={t} state={state} last={i === group.txns.length - 1} />
+                  <ActivityRow
+                    key={t.id}
+                    txn={t}
+                    state={state}
+                    last={i === group.txns.length - 1}
+                  />
                 ))}
               </div>
             );
@@ -281,7 +286,9 @@ export default function ActivityPage() {
                       padding: '5px 11px',
                       transition: 'background .15s',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--restore-hover)')}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'var(--restore-hover)')
+                    }
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     Restore
