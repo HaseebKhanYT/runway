@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in Runway is broken
+labels: [type/bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a suspected security problem here — this issue is public
+        the moment you submit it. Go back to the issue chooser and use the
+        security link instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the monorepo is affected?
+      options:
+        - web
+        - api
+        - shared
+        - infra
+        - docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences. What is broken?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps someone else can follow exactly.
+      placeholder: |
+        1. Sign in as a user with no saved runways
+        2. Open /dashboard
+        3. Click "Add runway" and submit the form empty
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - local
+        - staging
+        - production
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, stack traces, screenshots. Paste text rather than images where you can.

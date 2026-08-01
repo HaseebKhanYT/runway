@@ -1,0 +1,32 @@
+name: Docs
+description: Documentation is wrong, missing, unclear or outdated
+labels: [type/docs]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: File path or URL.
+      placeholder: README.md, Deployment section
+    validations:
+      required: true
+
+  - type: dropdown
+    id: problem
+    attributes:
+      label: Problem
+      options:
+        - wrong
+        - missing
+        - unclear
+        - outdated
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What does it say now, and what should it say?
+    validations:
+      required: true
