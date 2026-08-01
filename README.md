@@ -1,9 +1,39 @@
 # Runway
 
-Your runway to financial independence. One number tells you what's safe to
-spend, every day — after bills, after goals.
+> Your runway to financial independence. One number tells you what's safe to
+> spend, every day — after bills, after goals.
 
-## Stack
+[![CI](https://github.com/HaseebKhanYT/runway/actions/workflows/ci.yml/badge.svg)](https://github.com/HaseebKhanYT/runway/actions/workflows/ci.yml)
+
+Runway takes your balances, your bills and your goals and reduces them to a
+single number: what is safe to spend today. It is a web application, not a
+library — there is nothing to install as a dependency.
+
+## Table of contents
+
+- [Overview](#overview)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [Status and contact](#status-and-contact)
+- [License](#license)
+
+## Overview
+
+Budgeting apps tend to answer "where did the money go?". Runway answers the
+question you actually have standing in a shop: _can I spend this?_
+
+It does that by treating upcoming bills and funded goals as money that is
+already committed, subtracting them from what is on hand, and dividing the
+remainder across the days until income next arrives. The result is one
+safe-to-spend-per-day figure that updates as money moves.
+
+## Tech stack
 
 pnpm + Turborepo monorepo:
 
@@ -13,31 +43,92 @@ pnpm + Turborepo monorepo:
 | `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows                                   |
 | `packages/shared` | Pure domain math (safe-per-day, goals, cards, crunch, planner), Zod schemas, formatting — used by both apps |
 
-Postgres 16 runs in Docker.
+Postgres 16 runs in Docker. `.nvmrc` pins Node 24, and both Vercel and
+Railway's Railpack read it, so it is the single source of truth for the runtime
+version across CI and both platforms.
+
+## Architecture
+
+```
+                  ┌───────────────────────┐
+   browser ──────▶│  apps/web  (Next.js)  │
+                  └───────────┬───────────┘
+                              │  HTTPS, Clerk session token
+                              ▼
+                  ┌───────────────────────┐        ┌──────────────┐
+                  │  apps/api  (Hono)     │───────▶│  Postgres 16 │
+                  └───────────┬───────────┘ Prisma └──────────────┘
+                              │
+                  ┌───────────▼───────────┐
+                  │   packages/shared     │  ◀── also imported by apps/web
+                  └───────────────────────┘
+```
+
+Three properties are worth knowing before reading the code:
+
+- **The money math lives in `packages/shared`, not in either app.** Both the
+  API and the web client import the same pure functions, so a figure rendered
+  in the UI and the same figure computed server-side cannot drift.
+- **The API verifies Clerk tokens itself.** `WEB_ORIGIN` is both the CORS
+  allowlist and the set of authorized parties for token verification, so a
+  token minted for a different Clerk application is rejected rather than
+  trusted.
+- **`packages/shared` ships raw TypeScript**, not a build artifact. There is no
+  compile step between editing a domain function and running it.
 
 ## Getting started
+
+### Prerequisites
+
+- Node 24 (`nvm use` reads `.nvmrc`)
+- pnpm 9
+- Docker, for Postgres
+
+### Setup
 
 ```bash
 pnpm install
 docker compose up -d            # Postgres on localhost:5433
-cp .env.example .env            # fill in values (see below)
+cp .env.example .env            # fill in values (see Configuration)
 pnpm --filter @runway/api exec prisma migrate dev
+```
+
+### Running locally
+
+```bash
 pnpm dev                        # api :8787 + web :3000
 ```
 
-### Environment
+## Configuration
 
-- `DATABASE_URL` — preconfigured for the docker-compose Postgres.
-- Clerk: with no keys set, `apps/web` runs in Clerk **keyless dev mode** and
-  prints a claim URL on boot. Copy the generated secret from
-  `apps/web/.clerk/.tmp/keyless.json` into `apps/api/.env` as
-  `CLERK_SECRET_KEY` so the API can verify sessions. For a real Clerk app, set
-  `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` in both apps.
-- `apps/web/.env.local` also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and
-  `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` so Clerk uses the themed in-app
-  auth pages.
+| Variable                                          | Where      | Required     | Notes                                         |
+| ------------------------------------------------- | ---------- | ------------ | --------------------------------------------- |
+| `DATABASE_URL`                                    | `apps/api` | yes          | Preconfigured for the docker-compose Postgres |
+| `CLERK_SECRET_KEY`                                | both apps  | yes          | See keyless dev mode below                    |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`               | `apps/web` | yes          | See keyless dev mode below                    |
+| `NEXT_PUBLIC_API_URL`                             | `apps/web` | deploys only | Which API a build talks to                    |
+| `WEB_ORIGIN`                                      | `apps/api` | deploys only | CORS allowlist; comma-separated               |
+| `PORT`                                            | `apps/api` | no           | Defaults to `8787`                            |
+| `DEV_AUTH_BYPASS`                                 | `apps/api` | no           | Integration tests only; inert in production   |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `apps/web` | no           | `/sign-in`                                    |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`                   | `apps/web` | no           | `/sign-up`                                    |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `apps/web` | no           | `/runway`                                     |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `apps/web` | no           | `/runway`                                     |
+| `PLAID_CLIENT_ID` / `PLAID_SECRET` / `PLAID_ENV`  | `apps/api` | no           | Reserved, not yet integrated                  |
 
-## Tests
+With no Clerk keys set, `apps/web` runs in Clerk **keyless dev mode** and prints
+a claim URL on boot. Copy the generated secret from
+`apps/web/.clerk/.tmp/keyless.json` into `apps/api/.env` as `CLERK_SECRET_KEY`
+so the API can verify sessions. For a real Clerk app, set
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` in both apps.
+
+`apps/web/.env.local` also sets the two sign-in/sign-up URL variables so Clerk
+uses the themed in-app auth pages rather than its hosted ones.
+
+`NEXT_PUBLIC_*` values are inlined into the client bundle at build time —
+changing one requires a redeploy, not just an env var edit.
+
+## Testing
 
 The suite is split by whether it needs a database:
 
@@ -77,45 +168,6 @@ Integration tests run against the dev database using `DEV_AUTH_BYPASS=1` (an
 `x-dev-user` header stands in for a Clerk session). The bypass is ignored
 whenever `NODE_ENV=production`, and the API refuses to boot in production if
 it is set at all.
-
-## Branching
-
-`develop` is the default branch and the integration branch. `main` is
-release-only.
-
-```
-feature branch ──PR──> develop ──release PR──> main
-                          │                      │
-                          ▼                      ▼
-                       staging               production
-```
-
-Everything lands on `develop` first, where it deploys to the staging stack.
-Shipping is a `develop → main` pull request. Nothing is pushed to `main`
-directly — the release PR wants a merge commit, so `main` deliberately does
-**not** require linear history.
-
-### CI
-
-`.github/workflows/ci.yml` runs on push and pull request against `main` and
-`develop`, in two jobs whose names are also the required status check contexts:
-
-| Job           | Does                                                                        |
-| ------------- | --------------------------------------------------------------------------- |
-| `verify`      | `typecheck` → `test` → build the API bundle → `format:check`                |
-| `integration` | `postgres:16-alpine` service → `prisma migrate deploy` → `test:integration` |
-
-Two jobs rather than four: `pnpm install` costs 40–60s and is paid per job,
-while the whole suite runs in under five seconds. Every `verify` step carries
-`if: ${{ !cancelled() }}` so one run reports every problem instead of one
-problem per push. There are deliberately **no `paths:` filters** — a required
-check that skips itself never reports, and the PR blocks forever.
-
-Only the API bundle is built in CI; Vercel already builds `apps/web` per PR and
-posts its own status.
-
-`.nvmrc` pins Node 24. Both Vercel and Railway's Railpack read it, so it is the
-single source of truth for the runtime version across CI and both platforms.
 
 ## Deployment
 
@@ -212,9 +264,6 @@ Splitting `NEXT_PUBLIC_API_URL` by scope is the change that stops preview
 deployments writing to the production database. Before it, one shared value
 meant every preview's API calls landed on production.
 
-`NEXT_PUBLIC_*` values are inlined into the client bundle at build time —
-changing one requires a redeploy, not just an env var edit.
-
 ### Settings that live only in a dashboard
 
 None of these are expressible in `railway.json` or `vercel.json`, so they exist
@@ -255,7 +304,58 @@ Railway's `staging` environment.
 There is no Clerk CLI. Both key pairs are copied by hand from the dashboard
 under API Keys, after switching instances with the selector at the top.
 
-## Plaid (reserved)
+## Contributing
+
+Conventions for commit messages, pull request descriptions and issues are in
+[`AGENTS.md`](./AGENTS.md), which both humans and coding agents should read
+before opening anything.
+
+### Branching
+
+`develop` is the default branch and the integration branch. `main` is
+release-only.
+
+```
+feature branch ──PR──> develop ──release PR──> main
+                          │                      │
+                          ▼                      ▼
+                       staging               production
+```
+
+Everything lands on `develop` first, where it deploys to the staging stack.
+Shipping is a `develop → main` pull request. Nothing is pushed to `main`
+directly — the release PR wants a merge commit, so `main` deliberately does
+**not** require linear history.
+
+Branch names are `<type>/<short-kebab-description>`, where the type matches the
+Conventional Commits prefix of the work: `feat`, `fix`, `chore`, `test`, `ci`,
+`docs`, `refactor`.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on push and pull request against `main` and
+`develop`, in two jobs whose names are also the required status check contexts:
+
+| Job           | Does                                                                        |
+| ------------- | --------------------------------------------------------------------------- |
+| `verify`      | `typecheck` → `test` → build the API bundle → `format:check`                |
+| `integration` | `postgres:16-alpine` service → `prisma migrate deploy` → `test:integration` |
+
+Two jobs rather than four: `pnpm install` costs 40–60s and is paid per job,
+while the whole suite runs in under five seconds. Every `verify` step carries
+`if: ${{ !cancelled() }}` so one run reports every problem instead of one
+problem per push. There are deliberately **no `paths:` filters** — a required
+check that skips itself never reports, and the PR blocks forever.
+
+Only the API bundle is built in CI; Vercel already builds `apps/web` per PR and
+posts its own status.
+
+Run `pnpm format` before committing. `format:check` is part of `verify`, so an
+unformatted file fails the build.
+
+## Roadmap
+
+### Plaid (reserved)
 
 Plaid is not integrated yet, but the space is reserved:
 
@@ -265,3 +365,18 @@ Plaid is not integrated yet, but the space is reserved:
   `Txn.plaidTransactionId` columns
 - `PLAID_CLIENT_ID` / `PLAID_SECRET` / `PLAID_ENV` in `.env.example`
 - The Accounts modal shows a disabled "Connect a bank — coming soon" row
+
+## Status and contact
+
+Runway is in active development and is built and maintained by
+[@HaseebKhanYT](https://github.com/HaseebKhanYT). The database schema, the API
+surface and the deployment topology all still change without notice, and there
+is no stability guarantee on any of them.
+
+Questions, bugs and proposals go through
+[GitHub issues](https://github.com/HaseebKhanYT/runway/issues). Please do not
+report a suspected security problem in a public issue.
+
+## License
+
+No license is granted. All rights reserved.
