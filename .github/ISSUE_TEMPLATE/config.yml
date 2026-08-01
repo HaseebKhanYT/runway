@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/HaseebKhanYT/runway/security
+    about: Do not report suspected security problems in a public issue.
+  - name: Conventions for issues, commits and pull requests
+    url: https://github.com/HaseebKhanYT/runway/blob/develop/README.md
+    about: Read this before filing.

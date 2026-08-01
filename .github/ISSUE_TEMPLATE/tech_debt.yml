@@ -1,0 +1,49 @@
+name: Tech debt
+description: Internal cost worth paying down — no user-facing change
+labels: [type/tech-debt]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the monorepo is affected?
+      options:
+        - web
+        - api
+        - shared
+        - infra
+        - docs
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current state
+      description: What does the code do today? Include file:line where you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why_it_hurts
+    attributes:
+      label: Why it hurts
+      description: 'The cost: time lost, bugs invited, changes made harder. Not aesthetics.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: dropdown
+    id: blast_radius
+    attributes:
+      label: Blast radius
+      options:
+        - none
+        - staging only
+        - production
