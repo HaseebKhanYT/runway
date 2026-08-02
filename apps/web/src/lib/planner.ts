@@ -38,6 +38,8 @@ export interface PlanSummary {
   remainingGap: number;
   financed: number;
   interest: number;
+  /** Extra income per month the "Earn the rest" lever is asking for. */
+  earnMonthly: number;
   covered: boolean;
   perLine: string;
   perColor: string;
@@ -88,6 +90,9 @@ export function computePlan(
     : 0;
   const eff = card ? effectiveApr(card, today) : 0;
   const interest = eff === 0 ? 0 : Math.ceil(((financed * eff) / 100) * (months / 24));
+  // The figure the "Earn the rest" lever quotes, hoisted out of the lever list
+  // so the same number can be sent to the server and recorded on the plan.
+  const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
 
   const covered =
     initialGap <= 0 ||
@@ -153,7 +158,6 @@ export function computePlan(
         sub: 'Cards tab — APR, limit, balance off the statement',
       });
     }
-    const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
     levers.push({
       kind: 'earn',
       id: 'earn',
@@ -186,6 +190,7 @@ export function computePlan(
     remainingGap,
     financed,
     interest,
+    earnMonthly,
     covered,
     perLine,
     perColor,

@@ -159,6 +159,12 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
       )}
       <div style={{fontSize: 12.5, fontWeight: 600, color: status.color}}>{status.text}</div>
       <div style={{fontSize: 12.5, color: 'var(--financed)'}}>{perLine}</div>
+      {goal.earnMonthly > 0 && remaining > 0 && (
+        <div className="tnum" style={{fontSize: 12.5, color: 'var(--muted)'}}>
+          Depends on {formatMoney(goal.earnMonthly)}/mo of extra income — log it with the + as money
+          in when it lands
+        </div>
+      )}
 
       {settingAside && (
         <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
@@ -369,6 +375,9 @@ function PlannerCard({state}: {state: AppState}) {
       // number the user agreed to rather than recomputing the whole target.
       financed: plan.financed,
       earn,
+      // The figure the "Earn the rest" lever quoted, so the commitment is
+      // recorded on the plan rather than lost with the click.
+      earnMonthly: plan.earnMonthly,
     },
   }));
 

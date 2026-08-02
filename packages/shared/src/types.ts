@@ -87,6 +87,8 @@ export interface Goal {
   behind: boolean;
   financed: number;
   financedFrom: string | null;
+  /** Extra income per month this plan depends on, from the "earn" lever. */
+  earnMonthly: number;
 }
 
 export interface CardReward {

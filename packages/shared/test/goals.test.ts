@@ -35,6 +35,7 @@ function makeGoal(partial: Partial<Goal>): Goal {
     behind: false,
     financed: 0,
     financedFrom: null,
+    earnMonthly: 0,
     ...partial,
   };
 }

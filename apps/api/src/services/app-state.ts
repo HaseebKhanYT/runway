@@ -138,6 +138,7 @@ function serializeState(rows: Rows, today: Date): AppState {
       behind: g.behind,
       financed: toNumber(g.financed),
       financedFrom: g.financedFrom,
+      earnMonthly: toNumber(g.earnMonthly),
     })),
     cards: rows.cards.map((c) => ({
       id: c.id,

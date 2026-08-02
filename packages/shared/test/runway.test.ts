@@ -74,6 +74,7 @@ describe('computeRunway', () => {
           behind: false,
           financed: 0,
           financedFrom: null,
+          earnMonthly: 0,
         },
       ],
     });
@@ -172,6 +173,7 @@ describe('computeRunway', () => {
           behind: false,
           financed: 0,
           financedFrom: null,
+          earnMonthly: 0,
         },
         {
           id: 'g2',
@@ -186,6 +188,7 @@ describe('computeRunway', () => {
           behind: false,
           financed: 0,
           financedFrom: null,
+          earnMonthly: 0,
         },
       ],
     });

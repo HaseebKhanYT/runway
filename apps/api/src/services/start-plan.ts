@@ -54,7 +54,10 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
       }
     }
     const due = new Date(today.getFullYear(), today.getMonth() + body.months, 1);
-    const per = Math.max(0, Math.ceil(body.target / (body.months * 2)));
+    // Only the part the card did not front has to come out of paychecks.
+    // Dividing the whole target instead asked for money the plan had already
+    // borrowed, which is how a goal could open already behind.
+    const per = Math.max(0, Math.ceil((body.target - financed) / (body.months * 2)));
     await tx.goal.create({
       data: {
         userId,
@@ -67,6 +70,10 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
         necessity: body.kind === 'necessity',
         financed,
         financedFrom,
+        // The earn lever is a commitment to bring in money that is not in the
+        // budget yet. Recording it is what makes it a plan rather than a
+        // click: the goal can then say what it is waiting on.
+        earnMonthly: body.earn ? body.earnMonthly : 0,
       },
     });
   });

@@ -76,6 +76,7 @@ export function demoData(today: Date): AppState {
         behind: false,
         financed: 0,
         financedFrom: null,
+        earnMonthly: 0,
       },
       {
         id: 'efund',
@@ -90,6 +91,7 @@ export function demoData(today: Date): AppState {
         behind: true,
         financed: 0,
         financedFrom: null,
+        earnMonthly: 0,
       },
     ],
     cards: [

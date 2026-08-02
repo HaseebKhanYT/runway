@@ -100,6 +100,9 @@ model Goal {
   behind       Boolean   @default(false)
   financed     Decimal   @default(0) @db.Decimal(12, 2)
   financedFrom String?
+  // Extra income per month the plan depends on, when the user took the
+  // "Earn the rest" lever. Recorded so the commitment survives the click.
+  earnMonthly  Decimal   @default(0) @db.Decimal(12, 2)
 
   @@index([userId])
 }

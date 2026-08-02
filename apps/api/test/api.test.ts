@@ -555,6 +555,62 @@ describe('planner', () => {
     // The number the issue says the user should see: $2,000 − one installment.
     expect(runway.safe).toBe(1333);
   });
+
+  it('records the earn commitment on the plan', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Wedding',
+      target: 6000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: null,
+      earn: true,
+      earnMonthly: 340,
+    });
+    const goal = state.goals.find((g) => g.name === 'Wedding');
+    expect(goal?.earnMonthly).toBe(340);
+  });
+
+  it('ignores an earn figure when the earn lever was not taken', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Patio',
+      target: 3000,
+      months: 6,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: null,
+      earn: false,
+      earnMonthly: 500,
+    });
+    expect(state.goals.find((g) => g.name === 'Patio')?.earnMonthly).toBe(0);
+  });
+
+  it('asks paychecks only for the part the card did not front', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Helper',
+      apr: 18,
+      limit: 10000,
+      balance: 0,
+      dueDay: 14,
+    });
+    const helper = withCard.cards.find((c) => c.name === 'Helper');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'New roof',
+      target: 6000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: helper?.id,
+      financed: 2000,
+    });
+    // $4,000 left over 10 months of two paychecks — not the whole $6,000,
+    // $2,000 of which the card has already paid.
+    expect(state.goals.find((g) => g.name === 'New roof')?.per).toBe(200);
+  });
 });
 
 describe('plaid stubs', () => {

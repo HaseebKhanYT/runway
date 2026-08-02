@@ -143,6 +143,8 @@ export const plannerStartSchema = z.object({
    */
   financed: money.nonnegative().default(0),
   earn: z.boolean().default(false),
+  /** The extra monthly income the "Earn the rest" lever asked the user for. */
+  earnMonthly: money.nonnegative().default(0),
 });
 
 export const onboardingCompleteSchema = z.object({
