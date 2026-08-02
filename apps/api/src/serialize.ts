@@ -1,5 +1,12 @@
 import type {Account, Bill, Card, Category, Goal, Prisma, Profile, Txn} from '@prisma/client';
-import {daysUntil, type AppState, type Cadence, type CardReward} from '@runway/shared';
+import {
+  daysUntil,
+  midnight,
+  MS_PER_DAY,
+  type AppState,
+  type Cadence,
+  type CardReward,
+} from '@runway/shared';
 
 function num(d: Prisma.Decimal | null): number {
   return d == null ? 0 : Number(d);
@@ -12,14 +19,14 @@ function isoDate(d: Date | null): string | null {
   return `${d.getUTCFullYear()}-${m}-${day}`;
 }
 
+/**
+ * Whole days from `today` to the transaction's posted date (0 today, -1
+ * yesterday), compared at local midnights on both sides — the same frame
+ * `daysUntil` uses for bills. Mixing UTC parts for one side used to shift
+ * evening transactions into "tomorrow" for negative-UTC-offset zones.
+ */
 function txnOff(postedAt: Date, today: Date): number {
-  const posted = new Date(
-    postedAt.getUTCFullYear(),
-    postedAt.getUTCMonth(),
-    postedAt.getUTCDate(),
-  ).getTime();
-  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  return Math.round((posted - now) / 86400000);
+  return Math.round((midnight(postedAt) - midnight(today)) / MS_PER_DAY);
 }
 
 interface Rows {
