@@ -14,6 +14,7 @@ library — there is nothing to install as a dependency.
 - [Overview](#overview)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
+- [Repository layout](#repository-layout)
 - [Getting started](#getting-started)
 - [Configuration](#configuration)
 - [Testing](#testing)
@@ -37,11 +38,11 @@ safe-to-spend-per-day figure that updates as money moves.
 
 pnpm + Turborepo monorepo:
 
-| Package           | What it is                                                                                                  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query                                                |
-| `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows                                   |
-| `packages/shared` | Pure domain math (safe-per-day, goals, cards, crunch, planner), Zod schemas, formatting — used by both apps |
+| Package           | What it is                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Next.js 15 (App Router) frontend, Clerk auth, TanStack Query                                       |
+| `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows                          |
+| `packages/shared` | Pure domain math (runway, cycles, goals, cards), Zod schemas, the demo fixture — used by both apps |
 
 Postgres 16 runs in Docker. `.nvmrc` pins Node 24, and both Vercel and
 Railway's Railpack read it, so it is the single source of truth for the runtime
@@ -75,6 +76,48 @@ Three properties are worth knowing before reading the code:
   trusted.
 - **`packages/shared` ships raw TypeScript**, not a build artifact. There is no
   compile step between editing a domain function and running it.
+
+## Repository layout
+
+The layout follows one rule per package (decided in
+[#40](https://github.com/HaseebKhanYT/runway/issues/40)): the API layers HTTP
+apart from money movement, shared holds only what both apps consume, and all
+presentation — copy strings, colors, screen geometry — belongs to the web app.
+
+```
+apps/api/src
+├── index.ts        boot only: assert production config, listen
+├── app.ts          Hono assembly: CORS, auth, route mounting
+├── middleware/     Clerk JWT verification (auth.ts)
+├── lib/            db (Prisma client), dates
+├── routes/         one file per resource — validate, call a service, return state
+└── services/       one file per money flow or invariant; every Prisma
+                    transaction that moves money lives here (pay-bill, payday,
+                    log-expense, set-aside, crunch-lock, friend-loan,
+                    start-plan, complete-onboarding, reset-demo,
+                    log-card-payment, card-bill-sync, payment-source, app-state)
+
+packages/shared/src
+├── types.ts        wire types, pure declarations
+├── schemas.ts      Zod input schemas
+├── cycles.ts       pay-cadence math (cycle length, days-until)
+├── runway.ts       the safe-per-day formula and pooled balance
+├── goals.ts        goal set-aside math
+├── cards.ts        effective APR, amortization, reward suggestions
+├── categories.ts   the category palette
+└── demo-data.ts    the demo fixture (seeds /reset-demo, fixtures web tests)
+
+apps/web/src
+├── app/            Next.js App Router pages
+├── components/     React components by area (dashboard, modals, shell, …)
+└── lib/            api client, queries — plus the presentation modules:
+                    format (money/date formatters), view-model, timeline,
+                    card-lines, crunch, planner, category-colors
+```
+
+A route file never opens a transaction, and a service never parses HTTP. In
+`packages/shared` there are no UI strings and no hex colors; if a function
+builds a sentence or picks a color, it lives in `apps/web/src/lib`.
 
 ## Getting started
 
@@ -133,7 +176,7 @@ changing one requires a redeploy, not just an env var edit.
 The suite is split by whether it needs a database:
 
 ```bash
-pnpm test              # DB-free: shared math (52) + api pure modules (19)
+pnpm test              # DB-free: shared math (28) + api pure modules (19) + web presentation (28)
 pnpm test:integration  # needs Postgres: api flows (21)
 pnpm typecheck
 ```
@@ -147,6 +190,7 @@ include globs:
 | Config                                  | Glob                     |                   |
 | --------------------------------------- | ------------------------ | ----------------- |
 | `packages/shared/vitest.config.ts`      | `test/**/*.test.ts`      | recursive         |
+| `apps/web/vitest.config.ts`             | `test/**/*.test.ts`      | recursive         |
 | `apps/api/vitest.unit.config.ts`        | `test/unit/**/*.test.ts` | recursive         |
 | `apps/api/vitest.integration.config.ts` | `test/*.test.ts`         | **not** recursive |
 
@@ -154,8 +198,8 @@ The non-recursive integration glob is what keeps `test/unit/` out of it. A new
 `apps/api` test therefore belongs in `test/unit/` (no database) or directly in
 `test/` (database) — a subdirectory other than `unit/` is run by neither.
 
-Both unit configs pin `TZ: 'UTC'`, because several modules read local date
-parts. `apps/api/test/unit/dates.test.ts` opens with a tripwire asserting the
+All three DB-free configs pin `TZ: 'UTC'`, because several modules read local
+date parts. `apps/api/test/unit/dates.test.ts` opens with a tripwire asserting the
 pin took effect, so a config regression fails loudly instead of silently
 changing what the tests mean.
 
