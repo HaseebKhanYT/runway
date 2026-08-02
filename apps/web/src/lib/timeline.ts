@@ -1,4 +1,4 @@
-import type {Bill} from './types';
+import type {Bill} from '@runway/shared';
 
 export interface TimelineNode {
   id: string;
