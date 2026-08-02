@@ -2,7 +2,7 @@
 
 import type {AppState} from '@runway/shared';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {useApiFetch} from './api_client';
+import {useApiFetch} from './api-client';
 
 export const STATE_KEY = ['state'] as const;
 

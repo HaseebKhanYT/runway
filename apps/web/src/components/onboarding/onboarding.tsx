@@ -5,7 +5,7 @@ import {type Cadence} from '@runway/shared';
 import {formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
-import {BrandMark} from '../brand/brand_mark';
+import {BrandMark} from '../brand/brand-mark';
 import ui from '../ui/ui.module.css';
 
 const SUB_PRESETS = [

@@ -2,8 +2,8 @@
 
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {useState, type ReactNode} from 'react';
-import {ModalProvider} from '../../components/modals/modal_context';
-import {ModalHost} from '../../components/modals/modal_host';
+import {ModalProvider} from '../../components/modals/modal-context';
+import {ModalHost} from '../../components/modals/modal-host';
 import {Onboarding} from '../../components/onboarding/onboarding';
 import {Shell} from '../../components/shell/shell';
 import {useAppState} from '../../lib/queries';

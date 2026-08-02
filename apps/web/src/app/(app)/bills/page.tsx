@@ -3,10 +3,10 @@
 import {type AppState, type Bill, type BillKind} from '@runway/shared';
 import {formatShortDate, formatMoney, ordinalSuffix} from '../../../lib/format';
 import {useState, type DragEvent, type TouchEvent} from 'react';
-import {useModals} from '../../../components/modals/modal_context';
+import {useModals} from '../../../components/modals/modal-context';
 import ui from '../../../components/ui/ui.module.css';
 import {useAppState, useFlow} from '../../../lib/queries';
-import {useMedia} from '../../../lib/use_media';
+import {useMedia} from '../../../lib/use-media';
 
 const SUB_PRESETS = [
   {name: 'Spotify', amount: 11.99},

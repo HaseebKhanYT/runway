@@ -4,7 +4,7 @@ import {type AppState} from '@runway/shared';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {spineGap} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
-import {useModals} from '../modals/modal_context';
+import {useModals} from '../modals/modal-context';
 
 /** Mobile vertical runway spine (catalog §1.1C). */
 export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {

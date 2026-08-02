@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {BrandMark} from '../components/brand/brand_mark';
+import {BrandMark} from '../components/brand/brand-mark';
 
 /** Clerk appearance tuned to the design's warm auth card (catalog §1.8). */
 export const clerkAppearance = {

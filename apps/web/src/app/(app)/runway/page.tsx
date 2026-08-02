@@ -1,13 +1,13 @@
 'use client';
 
-import {ActivityPanel} from '../../../components/dashboard/activity_panel';
-import {CategoriesPanel} from '../../../components/dashboard/categories_panel';
-import {CrunchPanel} from '../../../components/dashboard/crunch_panel';
+import {ActivityPanel} from '../../../components/dashboard/activity-panel';
+import {CategoriesPanel} from '../../../components/dashboard/categories-panel';
+import {CrunchPanel} from '../../../components/dashboard/crunch-panel';
 import {Hero} from '../../../components/dashboard/hero';
-import {RunwayHorizontal} from '../../../components/dashboard/runway_horizontal';
-import {RunwayVertical} from '../../../components/dashboard/runway_vertical';
+import {RunwayHorizontal} from '../../../components/dashboard/runway-horizontal';
+import {RunwayVertical} from '../../../components/dashboard/runway-vertical';
 import {useAppState} from '../../../lib/queries';
-import {useMedia} from '../../../lib/use_media';
+import {useMedia} from '../../../lib/use-media';
 import {buildViewModel} from '../../../lib/view-model';
 
 export default function RunwayPage() {

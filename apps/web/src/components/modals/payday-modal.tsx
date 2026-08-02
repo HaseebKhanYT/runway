@@ -7,7 +7,7 @@ import {useFlow} from '../../lib/queries';
 import {buildViewModel} from '../../lib/view-model';
 import ui from '../ui/ui.module.css';
 import {Modal, ModalTitle} from './modal';
-import {useModals} from './modal_context';
+import {useModals} from './modal-context';
 
 /** Payday confirm (catalog §1.11). */
 export function PaydayModal({state}: {state: AppState}) {

@@ -6,7 +6,7 @@ import {formatMoney} from '../../lib/format';
 import type {ViewModel} from '../../lib/view-model';
 import {useState, type ReactNode} from 'react';
 import {useFlow} from '../../lib/queries';
-import {useModals} from '../modals/modal_context';
+import {useModals} from '../modals/modal-context';
 
 function Lever({
   selected,

@@ -3,7 +3,7 @@
 import {type AppState, type Txn} from '@runway/shared';
 import {formatShortDate, formatMoney} from '../../../lib/format';
 import {useState} from 'react';
-import {ActivityRow} from '../../../components/activity/activity_row';
+import {ActivityRow} from '../../../components/activity/activity-row';
 import ui from '../../../components/ui/ui.module.css';
 import {useAppState, useFlow} from '../../../lib/queries';
 

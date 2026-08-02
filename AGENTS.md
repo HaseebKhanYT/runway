@@ -17,11 +17,7 @@ The README's [Repository layout](./README.md#repository-layout) section maps
 the directories inside each package and the placement rules behind them
 (decided in #40).
 
-TypeScript source files are named in `kebab-case`. One legacy exception:
-existing React component files in `apps/web/src` are still `snake_case` and
-stay that way until a dedicated rename lands — inside those directories, match
-the surrounding files. New modules elsewhere (including `apps/web/src/lib`)
-are kebab-case.
+TypeScript source files are named in `kebab-case`.
 
 ## Commands
 

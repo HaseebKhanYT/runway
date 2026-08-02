@@ -5,7 +5,7 @@ import {useRef, useState} from 'react';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {layoutTimeline} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
-import {useModals} from '../modals/modal_context';
+import {useModals} from '../modals/modal-context';
 
 /** Desktop horizontal runway (catalog §1.1B). */
 export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) {

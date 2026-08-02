@@ -2,7 +2,7 @@
 
 import type {AppState} from '@runway/shared';
 import Link from 'next/link';
-import {ActivityRow} from '../activity/activity_row';
+import {ActivityRow} from '../activity/activity-row';
 import ui from '../ui/ui.module.css';
 
 /** Recent activity panel — first 7 txns (catalog §1.1D). */
