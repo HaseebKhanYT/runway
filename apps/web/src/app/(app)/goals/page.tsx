@@ -358,7 +358,18 @@ function PlannerCard({state}: {state: AppState}) {
 
   const start = useFlow<void>(() => ({
     path: '/planner/start',
-    json: {name: name.trim(), target, months: Math.max(1, months), kind, pausedIds, cardId, earn},
+    json: {
+      name: name.trim(),
+      target,
+      months: Math.max(1, months),
+      kind,
+      pausedIds,
+      cardId,
+      // The figure the lever showed, so the server charges the card the same
+      // number the user agreed to rather than recomputing the whole target.
+      financed: plan.financed,
+      earn,
+    },
   }));
 
   const monthLabel =

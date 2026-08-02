@@ -380,6 +380,62 @@ describe('planner', () => {
     expect(goal?.financedFrom).toBeNull();
     expect(state.cards.find((c) => c.id === maxed?.id)?.balance).toBe(1500);
   });
+
+  it('charges the card the advertised shortfall, not the whole target', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Roomy',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const roomy = withCard.cards.find((c) => c.name === 'Roomy');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: roomy?.id,
+      financed: 2153,
+    });
+
+    // The lever said $2,153. The card is charged $2,153 — the remaining
+    // $5,847 of the target stays a paycheck set-aside.
+    expect(state.cards.find((c) => c.id === roomy?.id)?.balance).toBe(2153);
+    const goal = state.goals.find((g) => g.name === 'Hospital bill');
+    expect(goal?.financed).toBe(2153);
+    expect(goal?.saved).toBe(2153);
+    expect(goal?.financedFrom).toBe('Roomy');
+  });
+
+  it('never finances more than the headroom the card actually has', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Tight',
+      apr: 19.9,
+      limit: 1000,
+      balance: 400,
+      dueDay: 9,
+    });
+    const tight = withCard.cards.find((c) => c.name === 'Tight');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Overreach',
+      target: 5000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: tight?.id,
+      // A client asking for more than the card can lend is still bounded.
+      financed: 5000,
+    });
+
+    expect(state.cards.find((c) => c.id === tight?.id)?.balance).toBe(1000);
+    expect(state.goals.find((g) => g.name === 'Overreach')?.financed).toBe(600);
+  });
 });
 
 describe('plaid stubs', () => {

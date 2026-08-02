@@ -23,7 +23,9 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
         // A card over its limit has no headroom to lend, not negative headroom:
         // an unclamped difference used to reach the goal as a negative `saved`.
         const headroom = Math.max(0, Math.floor(Number(card.limit) - Number(card.balance)));
-        financed = Math.min(headroom, Math.ceil(body.target));
+        // Charge what the lever advertised — the shortfall the other levers
+        // could not cover — bounded by the same two ceilings the planner used.
+        financed = Math.min(headroom, Math.ceil(body.target), Math.ceil(body.financed));
         if (financed > 0) {
           financedFrom = card.name;
           await tx.card.update({
