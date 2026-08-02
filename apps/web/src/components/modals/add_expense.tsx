@@ -1,7 +1,7 @@
 'use client';
 
 import {pooledBalance, type AppState} from '@runway/shared';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useMemo, useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
@@ -43,15 +43,17 @@ export function AddExpenseModal({
   const saveLabel = useMemo(() => {
     if (amount <= 0) return 'Enter an amount';
     if (mode === 'income') {
-      return goal ? `Add ${fm(amount)} → ${goal.name}` : `Add ${fm(amount)} — spendable`;
+      return goal
+        ? `Add ${formatMoney(amount)} → ${goal.name}`
+        : `Add ${formatMoney(amount)} — spendable`;
     }
     if (cat && cat.budget > 0) {
       const left = cat.budget - cat.spent - amount;
       return left >= 0
-        ? `Add — leaves ${fm(left)} in ${cat.name.toLowerCase()}`
-        : `Add — puts ${cat.name.toLowerCase()} over by ${fm(-left)}`;
+        ? `Add — leaves ${formatMoney(left)} in ${cat.name.toLowerCase()}`
+        : `Add — puts ${cat.name.toLowerCase()} over by ${formatMoney(-left)}`;
     }
-    return `Add ${fm(amount)}`;
+    return `Add ${formatMoney(amount)}`;
   }, [amount, mode, goal, cat]);
 
   const overBudget =

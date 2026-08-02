@@ -1,7 +1,7 @@
 'use client';
 
 import {daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
-import {fm} from '../../../lib/format';
+import {formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';
@@ -96,8 +96,8 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
 
   const dueTag = paymentBill
     ? paymentBill.paid
-      ? `${fm(paymentBill.amount)} paid ✓`
-      : `${fm(paymentBill.amount)} due ${new Date(paymentBill.dueDate + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}`
+      ? `${formatMoney(paymentBill.amount)} paid ✓`
+      : `${formatMoney(paymentBill.amount)} due ${new Date(paymentBill.dueDate + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}`
     : null;
 
   return (
@@ -198,10 +198,10 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
       <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
         <span style={{fontSize: 12, color: 'var(--muted)'}}>balance</span>
         <span className="tnum" style={{fontSize: 15, fontWeight: 650}}>
-          {fm(card.balance)}
+          {formatMoney(card.balance)}
         </span>
         <span className="tnum" style={{fontSize: 11.5, fontWeight: 600, color: 'var(--muted)'}}>
-          of {fm(card.limit)}
+          of {formatMoney(card.limit)}
         </span>
       </div>
       <div className={ui.progressTrack}>
@@ -388,7 +388,7 @@ export default function CardsPage() {
               TOTAL DEBT
             </div>
             <div className="tnum" style={{fontSize: 20, fontWeight: 700}}>
-              {fm(totalDebt)}
+              {formatMoney(totalDebt)}
             </div>
             <div style={{fontSize: 11, color: 'var(--on-dark-muted)'}}>
               across {state.cards.length} card{state.cards.length === 1 ? '' : 's'}
@@ -414,9 +414,11 @@ export default function CardsPage() {
               AVAILABLE
             </div>
             <div className="tnum" style={{fontSize: 20, fontWeight: 700}}>
-              {fm(available)}
+              {formatMoney(available)}
             </div>
-            <div style={{fontSize: 11, color: 'var(--muted)'}}>of {fm(totalLimit)} limit</div>
+            <div style={{fontSize: 11, color: 'var(--muted)'}}>
+              of {formatMoney(totalLimit)} limit
+            </div>
           </div>
         </div>
       )}

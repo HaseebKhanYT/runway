@@ -1,7 +1,7 @@
 'use client';
 
 import {daysUntil, type AppState} from '@runway/shared';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
@@ -41,7 +41,7 @@ export function LoanModal({state, prefillAmount}: {state: AppState; prefillAmoun
       note = `Due ${dueLabel}, before payday — this moves the shortfall rather than clearing it.`;
       noteColor = 'var(--danger)';
     } else {
-      note = `Due ${dueLabel}, after payday — ${fm(amount)} comes off that paycheck.`;
+      note = `Due ${dueLabel}, after payday — ${formatMoney(amount)} comes off that paycheck.`;
     }
   }
 
@@ -96,7 +96,7 @@ export function LoanModal({state, prefillAmount}: {state: AppState; prefillAmoun
         </div>
         <div style={{fontSize: 12, color: noteColor, lineHeight: 1.45}}>{note}</div>
         <button className={ui.btnPrimary} disabled={!valid || save.isPending} onClick={submit}>
-          {valid ? `Add ${fm(amount)} from ${who.trim()}` : 'Add the loan'}
+          {valid ? `Add ${formatMoney(amount)} from ${who.trim()}` : 'Add the loan'}
         </button>
         <div
           style={{

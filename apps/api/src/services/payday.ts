@@ -1,4 +1,4 @@
-import {goalPer, type Cadence} from '@runway/shared';
+import {goalPerPaycheck, type Cadence} from '@runway/shared';
 import {prisma} from '../lib/db';
 import {advanceCycle, parseIsoDateUtc} from '../lib/dates';
 import {syncCardBill} from './card-bill-sync';
@@ -34,7 +34,7 @@ export async function confirmPayday(userId: string, amount: number): Promise<voi
       const target = Number(g.target);
       const saved = Number(g.saved);
       if (saved >= target) continue;
-      const per = goalPer(
+      const per = goalPerPaycheck(
         {
           id: g.id,
           name: g.name,

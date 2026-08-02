@@ -2,7 +2,7 @@
 
 import {useUser} from '@clerk/nextjs';
 import {type Cadence} from '@runway/shared';
-import {fm, ordSuf} from '../../lib/format';
+import {formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand_mark';
@@ -368,8 +368,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                       <span style={{fontSize: 13.5, fontWeight: 600, flex: 1}}>{b.name}</span>
                       <span className="tnum" style={{fontSize: 12, color: 'var(--muted)'}}>
                         {b.kind === 'subscription'
-                          ? `sub · ${fm(b.amount)}`
-                          : `due the ${b.dueDay}${ordSuf(b.dueDay)} · ${fm(b.amount)}`}
+                          ? `sub · ${formatMoney(b.amount)}`
+                          : `due the ${b.dueDay}${ordinalSuffix(b.dueDay)} · ${formatMoney(b.amount)}`}
                       </span>
                       <button
                         className={ui.iconBtn}
@@ -435,7 +435,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
               </div>
               <button className={ui.btnPrimary} onClick={() => setStep(4)}>
                 {bills.length > 0
-                  ? `Next — ${bills.length} bill${bills.length === 1 ? '' : 's'} · ${fm(billsSum)}`
+                  ? `Next — ${bills.length} bill${bills.length === 1 ? '' : 's'} · ${formatMoney(billsSum)}`
                   : 'Next — skip for now'}
               </button>
             </>,
@@ -462,7 +462,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                     >
                       <span style={{fontSize: 13.5, fontWeight: 600, flex: 1}}>{card.name}</span>
                       <span className="tnum" style={{fontSize: 12, color: 'var(--muted)'}}>
-                        {fm(card.balance)} / {fm(card.limit)} · {card.apr}% APR
+                        {formatMoney(card.balance)} / {formatMoney(card.limit)} · {card.apr}% APR
                       </span>
                       <button
                         className={ui.iconBtn}
@@ -519,7 +519,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
               </div>
               <button className={ui.btnPrimary} onClick={() => setStep(5)}>
                 {cards.length > 0
-                  ? `Next — ${cards.length} card${cards.length === 1 ? '' : 's'} · ${fm(cardsOwed)} owed`
+                  ? `Next — ${cards.length} card${cards.length === 1 ? '' : 's'} · ${formatMoney(cardsOwed)} owed`
                   : 'Next — no cards'}
               </button>
             </>,

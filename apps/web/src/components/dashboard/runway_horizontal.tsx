@@ -2,7 +2,7 @@
 
 import {type AppState} from '@runway/shared';
 import {useRef, useState} from 'react';
-import {d, fm} from '../../lib/format';
+import {formatShortDate, formatMoney} from '../../lib/format';
 import {layoutTimeline} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal_context';
@@ -154,7 +154,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   {bill.name}
                 </div>
                 <div className="tnum" style={{fontSize: 11.5, color: 'var(--muted)'}}>
-                  {fm(bill.amount)} · {d(bill.off, today)}
+                  {formatMoney(bill.amount)} · {formatShortDate(bill.off, today)}
                 </div>
               </div>
               <button

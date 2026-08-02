@@ -1,5 +1,5 @@
 import {cycleDays, DAYS_PER_MONTH, daysUntil} from './cycles';
-import {goalPer} from './goals';
+import {goalPerPaycheck} from './goals';
 import {type AppState, type Goal} from './types';
 
 /** Everything spendable — the total that drives the runway. */
@@ -47,7 +47,10 @@ export function computeRunway(state: AppState, today: Date): RunwaySummary {
   const preBills = unpaidBills.filter((b) => b.off < DAYS);
   const preBillsSum = preBills.reduce((sum, b) => sum + b.amount, 0);
 
-  const setAside = activeGoals(state.goals).reduce((sum, g) => sum + goalPer(g, cadence, today), 0);
+  const setAside = activeGoals(state.goals).reduce(
+    (sum, g) => sum + goalPerPaycheck(g, cadence, today),
+    0,
+  );
 
   const balance = pooledBalance(state);
   const safe = balance - preBillsSum - setAside;

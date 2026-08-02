@@ -1,7 +1,7 @@
 'use client';
 
 import {type AppState} from '@runway/shared';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
@@ -40,11 +40,11 @@ export function PaySourceModal({state, billId}: {state: AppState; billId: string
       glyph: '⌂',
       glyphBg: '#29221a',
       glyphFg: '#f6f0e6',
-      nowLine: `${fm(state.profile.primaryBalance)} now`,
+      nowLine: `${formatMoney(state.profile.primaryBalance)} now`,
       afterLine:
         state.profile.primaryBalance - amount >= 0
-          ? `${fm(state.profile.primaryBalance - amount)} left`
-          : `${fm(state.profile.primaryBalance - amount)} — short`,
+          ? `${formatMoney(state.profile.primaryBalance - amount)} left`
+          : `${formatMoney(state.profile.primaryBalance - amount)} — short`,
       afterColor: state.profile.primaryBalance - amount >= 0 ? 'var(--muted)' : 'var(--danger)',
     },
     ...state.accounts.map((a) => ({
@@ -53,11 +53,11 @@ export function PaySourceModal({state, billId}: {state: AppState; billId: string
       glyph: a.type === 'cash' ? '$' : a.type === 'savings' ? '★' : '⌂',
       glyphBg: a.type === 'cash' ? '#2e6d4f' : a.type === 'savings' ? '#8b6fd8' : '#29221a',
       glyphFg: '#f6f0e6',
-      nowLine: `${fm(a.balance)} now`,
+      nowLine: `${formatMoney(a.balance)} now`,
       afterLine:
         a.balance - amount >= 0
-          ? `${fm(a.balance - amount)} left`
-          : `${fm(a.balance - amount)} — short`,
+          ? `${formatMoney(a.balance - amount)} left`
+          : `${formatMoney(a.balance - amount)} — short`,
       afterColor: a.balance - amount >= 0 ? 'var(--muted)' : 'var(--danger)',
     })),
     ...state.cards
@@ -70,10 +70,10 @@ export function PaySourceModal({state, billId}: {state: AppState; billId: string
           glyph: '□',
           glyphBg: '#5c5142',
           glyphFg: '#f6f0e6',
-          nowLine: `${fm(Math.max(0, c.limit - c.balance))} avail`,
+          nowLine: `${formatMoney(Math.max(0, c.limit - c.balance))} avail`,
           afterLine: overLimit
-            ? `over limit by ${fm(c.balance + amount - c.limit)}`
-            : `charges the card · ${fm(c.balance + amount)} owed`,
+            ? `over limit by ${formatMoney(c.balance + amount - c.limit)}`
+            : `charges the card · ${formatMoney(c.balance + amount)} owed`,
           afterColor: overLimit ? 'var(--danger)' : 'var(--muted)',
         };
       }),
@@ -83,7 +83,8 @@ export function PaySourceModal({state, billId}: {state: AppState; billId: string
     <Modal onClose={closeModal} z={55}>
       <ModalTitle title={`Pay ${bill.name}`} onClose={closeModal} />
       <div style={{fontSize: 12.5, color: 'var(--muted)', marginBottom: 14}}>
-        Paying <b style={{color: 'var(--ink)'}}>{fm(amount)}</b> — which source is it coming from?
+        Paying <b style={{color: 'var(--ink)'}}>{formatMoney(amount)}</b> — which source is it
+        coming from?
       </div>
       <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
         {rows.map((row) => {

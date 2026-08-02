@@ -4,7 +4,7 @@ import {
   computeRunway,
   goalBarSplit,
   goalBehind,
-  goalPer,
+  goalPerPaycheck,
   goalPerMonth,
   goalRemaining,
   spareMonthly,
@@ -13,7 +13,7 @@ import {
 } from '@runway/shared';
 import {useState} from 'react';
 import ui from '../../../components/ui/ui.module.css';
-import {fm} from '../../../lib/format';
+import {formatMoney} from '../../../lib/format';
 import {computePlan} from '../../../lib/planner';
 import {useAppState, useFlow} from '../../../lib/queries';
 
@@ -49,7 +49,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
   }));
   const patch = useFlow<void>(() => {
     const newPer = parseFloat(editPerRaw) || 0;
-    const computedPer = goalPer(goal, cadence, today);
+    const computedPer = goalPerPaycheck(goal, cadence, today);
     // Typing within $1 of the computed value keeps the due date live;
     // anything else pins the amount and clears the date (catalog §3.5).
     const keepsDue = Math.abs(newPer - computedPer) <= 1;
@@ -69,7 +69,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
   const {finPct, payPct} = goalBarSplit(goal);
   const remaining = goalRemaining(goal);
   const perMonth = goalPerMonth(goal, cadence, today);
-  const per = goalPer(goal, cadence, today);
+  const per = goalPerPaycheck(goal, cadence, today);
   const status = goalStatus(goal, state, today);
   const dueLabel = goal.due
     ? new Date(goal.due + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
@@ -88,7 +88,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
 
   const perLine =
     goal.paused && goal.paused !== '__crunch'
-      ? `${fm(goal.per)}/paycheck skips one cycle to cover the crunch · ${goal.note}`
+      ? `${formatMoney(goal.per)}/paycheck skips one cycle to cover the crunch · ${goal.note}`
       : goal.note === 'your safety net'
         ? 'Set aside automatically · your safety net'
         : 'Auto-adjusts as you save';
@@ -112,7 +112,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
           </span>
         )}
         <span className="tnum" style={{marginLeft: 'auto', fontSize: 13, color: 'var(--muted)'}}>
-          {fm(goal.saved)} / {fm(goal.target)}
+          {formatMoney(goal.saved)} / {formatMoney(goal.target)}
         </span>
       </div>
 
@@ -130,11 +130,11 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
         <div style={{display: 'flex', gap: 14, fontSize: 11.5, color: 'var(--muted)'}}>
           <span style={{display: 'flex', alignItems: 'center', gap: 5}}>
             <span style={{width: 8, height: 8, borderRadius: 3, background: 'var(--financed)'}} />
-            {fm(Math.min(goal.financed, goal.saved))} fronted by {goal.financedFrom}
+            {formatMoney(Math.min(goal.financed, goal.saved))} fronted by {goal.financedFrom}
           </span>
           <span style={{display: 'flex', alignItems: 'center', gap: 5}}>
             <span style={{width: 8, height: 8, borderRadius: 3, background: 'var(--goals)'}} />
-            {fm(Math.max(0, goal.saved - goal.financed))} set aside from paychecks
+            {formatMoney(Math.max(0, goal.saved - goal.financed))} set aside from paychecks
           </span>
         </div>
       )}
@@ -142,7 +142,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
       {remaining > 0 && (
         <div>
           <span className="tnum" style={{fontSize: 22, fontWeight: 700, letterSpacing: '-.5px'}}>
-            {fm(perMonth)}
+            {formatMoney(perMonth)}
           </span>{' '}
           <span style={{fontSize: 11.5, fontWeight: 650, color: 'var(--muted)'}}>
             {goal.necessity
@@ -153,8 +153,8 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
       )}
       {remaining > 0 && (
         <div className="tnum" style={{fontSize: 11.5, color: 'var(--muted)'}}>
-          {fm(remaining)} to go
-          {checks != null && per > 0 ? ` · ${fm(per)} per paycheck × ${checks} left` : ''}
+          {formatMoney(remaining)} to go
+          {checks != null && per > 0 ? ` · ${formatMoney(per)} per paycheck × ${checks} left` : ''}
         </div>
       )}
       <div style={{fontSize: 12.5, fontWeight: 600, color: status.color}}>{status.text}</div>
@@ -623,7 +623,7 @@ export default function GoalsPage() {
         </div>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap'}}>
           <span className="tnum" style={{fontSize: 30, fontWeight: 700, letterSpacing: '-.5px'}}>
-            {fm(spare)}
+            {formatMoney(spare)}
           </span>
           <span style={{fontSize: 12.5, color: 'var(--on-dark-muted-2)'}}>
             left over after bills &amp; goals
@@ -638,7 +638,7 @@ export default function GoalsPage() {
           }}
         >
           {spare >= 10
-            ? `Set it aside and you could afford something worth ${fm(big)} by ${horizon.toLocaleDateString('en-US', {month: 'long', year: 'numeric'})}.`
+            ? `Set it aside and you could afford something worth ${formatMoney(big)} by ${horizon.toLocaleDateString('en-US', {month: 'long', year: 'numeric'})}.`
             : 'Your paycheck is fully committed right now — free up a little and you could start saving toward something big.'}
         </div>
       </div>

@@ -1,12 +1,12 @@
 import {
-  effApr,
-  goalPer,
+  effectiveApr,
+  goalPerPaycheck,
   type AppState,
   type Card,
   type Goal,
   type RunwaySummary,
 } from '@runway/shared';
-import {fm} from './format';
+import {formatMoney} from './format';
 
 export interface PlanInput {
   name: string;
@@ -68,11 +68,12 @@ export function computePlan(
 
   const cadence = state.profile.cadence;
   const pausableWishes = state.goals.filter(
-    (g) => !g.necessity && !g.paused && g.saved < g.target && goalPer(g, cadence, today) > 0,
+    (g) =>
+      !g.necessity && !g.paused && g.saved < g.target && goalPerPaycheck(g, cadence, today) > 0,
   );
   const freed = pausableWishes
     .filter((g) => input.pausedIds.includes(g.id))
-    .reduce((sum, g) => sum + goalPer(g, cadence, today), 0);
+    .reduce((sum, g) => sum + goalPerPaycheck(g, cadence, today), 0);
   const remGap = Math.max(0, gap0 - freed);
 
   const card: Card | undefined = input.cardId
@@ -85,7 +86,7 @@ export function computePlan(
         Math.ceil(input.target),
       )
     : 0;
-  const eff = card ? effApr(card, today) : 0;
+  const eff = card ? effectiveApr(card, today) : 0;
   const interest = eff === 0 ? 0 : Math.ceil(((financed * eff) / 100) * (months / 24));
 
   const covered =
@@ -111,14 +112,14 @@ export function computePlan(
         kind: 'pause',
         id: g.id,
         title: `Pause “${g.name}” set-asides`,
-        sub: `frees ${fm(goalPer(g, cadence, today))} / paycheck while this plan runs`,
+        sub: `frees ${formatMoney(goalPerPaycheck(g, cadence, today))} / paycheck while this plan runs`,
       });
     }
     const sortedCards = [...state.cards]
       .filter((c) => Math.floor(c.limit - c.balance) > 0)
-      .sort((a, b) => effApr(a, today) - effApr(b, today));
+      .sort((a, b) => effectiveApr(a, today) - effectiveApr(b, today));
     for (const c of sortedCards) {
-      const cardEff = effApr(c, today);
+      const cardEff = effectiveApr(c, today);
       const promoEndIso = c.promoEnd;
       const promoLive = cardEff === 0 && promoEndIso != null;
       const promoEnd = promoLive
@@ -140,8 +141,8 @@ export function computePlan(
         title: `Put the rest on ${c.name} · ${promoLive ? `0% until ${promoEnd}` : `${c.apr}% APR`}`,
         sub:
           cardEff === 0
-            ? `≈${fm(cardFin)} financed · $0 interest if cleared before the promo ends`
-            : `≈${fm(cardInterest)} interest over ${months} mo`,
+            ? `≈${formatMoney(cardFin)} financed · $0 interest if cleared before the promo ends`
+            : `≈${formatMoney(cardInterest)} interest over ${months} mo`,
       });
     }
     if (state.cards.length === 0) {
@@ -157,16 +158,16 @@ export function computePlan(
       kind: 'earn',
       id: 'earn',
       title: 'Earn the rest',
-      sub: `about ${fm(earnMonthly)}/mo more — log it with the + as money in when it lands`,
+      sub: `about ${formatMoney(earnMonthly)}/mo more — log it with the + as money in when it lands`,
     });
   }
 
   const parts: string[] = [];
-  if (freed > 0) parts.push(`${fm(freed)}/pay freed from paused wishes`);
-  if (financed > 0) parts.push(`${fm(financed)} on ${card?.name ?? ''}`);
+  if (freed > 0) parts.push(`${formatMoney(freed)}/pay freed from paused wishes`);
+  if (financed > 0) parts.push(`${formatMoney(financed)} on ${card?.name ?? ''}`);
   const gapLine = covered
     ? `Covered ✓${parts.length ? ' · ' + parts.join(' · ') : ''}`
-    : `Still short ${fm(remGap)} per paycheck — pick another lever`;
+    : `Still short ${formatMoney(remGap)} per paycheck — pick another lever`;
 
   const ctaLabel = isNecessity && gap0 > 0 ? 'Lock this plan in' : 'Start this plan';
   const ctaEnabled =

@@ -2,14 +2,14 @@
 
 import {type AppState, type Txn} from '@runway/shared';
 import {catHue} from '../../lib/category-colors';
-import {d, fm} from '../../lib/format';
+import {formatShortDate, formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 
 function whenLabel(off: number, today: Date): string {
   if (off === 0) return 'Today';
   if (off === -1) return 'Yesterday';
-  return d(off, today);
+  return formatShortDate(off, today);
 }
 
 /** Spend txns (negative, in a real spending category) can be recategorized. */
@@ -108,7 +108,7 @@ export function ActivityRow({
             color: positive ? 'var(--success)' : 'var(--ink)',
           }}
         >
-          {positive ? `+${fm(txn.amount)}` : fm(txn.amount)}
+          {positive ? `+${formatMoney(txn.amount)}` : formatMoney(txn.amount)}
         </span>
         <span
           style={{

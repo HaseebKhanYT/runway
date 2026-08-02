@@ -23,7 +23,7 @@ export function goalChecks(g: Goal, cadence: Cadence, today: Date): number | nul
 }
 
 /** Live per-paycheck set-aside: what's left over the paychecks left. */
-export function goalPer(g: Goal, cadence: Cadence, today: Date): number {
+export function goalPerPaycheck(g: Goal, cadence: Cadence, today: Date): number {
   const remaining = goalRemaining(g);
   if (remaining <= 0) return 0;
   if (!g.due) return g.per || 0;

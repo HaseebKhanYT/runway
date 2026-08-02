@@ -1,6 +1,6 @@
 import {
-  effApr,
-  goalPer,
+  effectiveApr,
+  goalPerPaycheck,
   pooledBalance,
   type AppState,
   type Bill,
@@ -8,7 +8,7 @@ import {
   type Goal,
   type RunwaySummary,
 } from '@runway/shared';
-import {d, fm} from './format';
+import {formatShortDate, formatMoney} from './format';
 
 export interface CrunchGoalLever {
   goal: Goal;
@@ -71,18 +71,18 @@ export function computeCrunch(
 
   const bill = on ? breakingBill(state, runway, today) : null;
   const billLine = bill
-    ? `Not enough for ${bill.name} (${fm(bill.amount)}, due ${d(bill.off, today)})`
+    ? `Not enough for ${bill.name} (${formatMoney(bill.amount)}, due ${formatShortDate(bill.off, today)})`
     : 'Your set-asides put you under for this cycle';
 
   const cadence = state.profile.cadence;
   const goalLevers: CrunchGoalLever[] = state.goals
-    .filter((g) => !g.paused && g.saved < g.target && goalPer(g, cadence, today) > 0)
+    .filter((g) => !g.paused && g.saved < g.target && goalPerPaycheck(g, cadence, today) > 0)
     .map((g) => {
-      const frees = goalPer(g, cadence, today);
+      const frees = goalPerPaycheck(g, cadence, today);
       return {
         goal: g,
         title: `Pause “${g.name}” this cycle`,
-        sub: `frees ${fm(frees)} · resumes automatically at payday`,
+        sub: `frees ${formatMoney(frees)} · resumes automatically at payday`,
         frees,
       };
     });
@@ -94,19 +94,19 @@ export function computeCrunch(
 
   const cardLevers: CrunchCardLever[] = state.cards
     .filter((c) => Math.floor(c.limit - c.balance) > 0)
-    .sort((a, b) => effApr(a, today) - effApr(b, today))
+    .sort((a, b) => effectiveApr(a, today) - effectiveApr(b, today))
     .map((c) => {
       const headroom = Math.floor(c.limit - c.balance);
       const advance = Math.min(rem, headroom);
-      const eff = effApr(c, today);
+      const eff = effectiveApr(c, today);
       const isPromo = eff === 0;
       const interest = Math.max(1, Math.round((advance * c.apr) / 1200));
       return {
         card: c,
         title: `Cover the rest with ${c.name} · ${isPromo ? '0% promo' : `${c.apr}% APR`}`,
         sub: isPromo
-          ? `≈${fm(advance)} advanced · $0 interest if cleared before the promo ends`
-          : `≈${fm(interest)}/mo interest until you clear it`,
+          ? `≈${formatMoney(advance)} advanced · $0 interest if cleared before the promo ends`
+          : `≈${formatMoney(interest)}/mo interest until you clear it`,
         headroom,
       };
     });
@@ -122,15 +122,15 @@ export function computeCrunch(
   let gapLine: string;
   if (covered) {
     const parts: string[] = [];
-    if (freed > 0) parts.push(`${fm(freed)} from paused goals`);
-    if (advance > 0 && selectedCard) parts.push(`${fm(advance)} on ${selectedCard.name}`);
+    if (freed > 0) parts.push(`${formatMoney(freed)} from paused goals`);
+    if (advance > 0 && selectedCard) parts.push(`${formatMoney(advance)} on ${selectedCard.name}`);
     gapLine = `Covered ✓ · ${parts.join(' · ')}`;
   } else {
     const still = rem - advance;
     gapLine =
       goalLevers.length + cardLevers.length > 0
-        ? `Still short ${fm(still)} — stack another lever`
-        : `Still short ${fm(still)} — log money in, or trim a bill`;
+        ? `Still short ${formatMoney(still)} — stack another lever`
+        : `Still short ${formatMoney(still)} — log money in, or trim a bill`;
   }
 
   return {
