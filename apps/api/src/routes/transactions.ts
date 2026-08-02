@@ -2,7 +2,7 @@ import {zValidator} from '@hono/zod-validator';
 import {txnCategoryPatchSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const transactionsRoutes = new Hono();
 

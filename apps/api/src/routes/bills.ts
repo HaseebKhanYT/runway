@@ -3,7 +3,7 @@ import {billCreateSchema, billPatchSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
 import {nextDueDate} from '../lib/dates';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const billsRoutes = new Hono();
 

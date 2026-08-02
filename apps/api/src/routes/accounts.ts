@@ -3,7 +3,7 @@ import {accountUpsertSchema, profilePatchSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
 import {parseIsoDateUtc} from '../lib/dates';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const accountsRoutes = new Hono();
 

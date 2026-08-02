@@ -4,7 +4,7 @@ import {cardLogPaymentSchema, cardUpsertSchema, suggestRewards} from '@runway/sh
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
 import {syncCardBill} from '../card_bill_sync';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const cardsRoutes = new Hono();
 

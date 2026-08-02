@@ -2,7 +2,7 @@ import {zValidator} from '@hono/zod-validator';
 import {categoryUpsertSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const categoriesRoutes = new Hono();
 

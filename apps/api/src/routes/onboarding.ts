@@ -4,7 +4,7 @@ import {CAT_PALETTE, demoData, onboardingCompleteSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {prisma} from '../lib/db';
 import {nextDueDate, parseIsoDateUtc} from '../lib/dates';
-import {loadState} from '../state';
+import {loadState} from '../services/app-state';
 
 export const onboardingRoutes = new Hono();
 
