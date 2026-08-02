@@ -1,4 +1,5 @@
 import {ClerkProvider} from '@clerk/nextjs';
+import {SpeedInsights} from '@vercel/speed-insights/next';
 import type {Metadata} from 'next';
 import {Instrument_Sans} from 'next/font/google';
 import type {ReactNode} from 'react';
@@ -25,6 +26,7 @@ export default function RootLayout({children}: {children: ReactNode}) {
           }}
         >
           {children}
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>
