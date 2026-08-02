@@ -4,11 +4,11 @@ import {type AppState} from '@runway/shared';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
-import {useMedia} from '../../lib/use_media';
+import {useMedia} from '../../lib/use-media';
 import {buildViewModel, PAGE_TITLES, type View} from '../../lib/view-model';
-import {BrandMark} from '../brand/brand_mark';
-import {useModals} from '../modals/modal_context';
-import {NavIcon} from './nav_icons';
+import {BrandMark} from '../brand/brand-mark';
+import {useModals} from '../modals/modal-context';
+import {NavIcon} from './nav-icons';
 import styles from './shell.module.css';
 
 const NAV_VIEWS: View[] = ['runway', 'bills', 'goals', 'activity', 'cards', 'settings'];

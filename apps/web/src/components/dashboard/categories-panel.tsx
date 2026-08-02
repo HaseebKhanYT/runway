@@ -4,7 +4,7 @@ import {type AppState} from '@runway/shared';
 import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
-import {useModals} from '../modals/modal_context';
+import {useModals} from '../modals/modal-context';
 import ui from '../ui/ui.module.css';
 
 /** Spending categories panel (catalog §1.1D). */

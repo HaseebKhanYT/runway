@@ -6,7 +6,7 @@ import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
 import {Modal, ModalTitle} from './modal';
-import {useModals} from './modal_context';
+import {useModals} from './modal-context';
 
 interface SourceRow {
   id: string;

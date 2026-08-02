@@ -1,13 +1,13 @@
 'use client';
 
 import type {AppState} from '@runway/shared';
-import {AccountsModal} from './accounts_modal';
-import {AddExpenseModal} from './add_expense';
-import {CategoryModal} from './category_modal';
-import {LoanModal} from './loan_modal';
-import {useModals} from './modal_context';
-import {PaydayModal} from './payday_modal';
-import {PaySourceModal} from './pay_source_modal';
+import {AccountsModal} from './accounts-modal';
+import {AddExpenseModal} from './add-expense';
+import {CategoryModal} from './category-modal';
+import {LoanModal} from './loan-modal';
+import {useModals} from './modal-context';
+import {PaydayModal} from './payday-modal';
+import {PaySourceModal} from './pay-source-modal';
 
 /** Renders the modal stack (catalog §2.2 overlay table). */
 export function ModalHost({state}: {state: AppState}) {
