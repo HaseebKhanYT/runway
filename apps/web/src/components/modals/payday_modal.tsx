@@ -1,8 +1,10 @@
 'use client';
 
-import {buildViewModel, fm, type AppState} from '@runway/shared';
+import {type AppState} from '@runway/shared';
 import {useState} from 'react';
+import {fm} from '../../lib/format';
 import {useFlow} from '../../lib/queries';
+import {buildViewModel} from '../../lib/view-model';
 import ui from '../ui/ui.module.css';
 import {Modal, ModalTitle} from './modal';
 import {useModals} from './modal_context';

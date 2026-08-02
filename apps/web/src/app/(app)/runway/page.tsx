@@ -1,6 +1,5 @@
 'use client';
 
-import {buildViewModel} from '@runway/shared';
 import {ActivityPanel} from '../../../components/dashboard/activity_panel';
 import {CategoriesPanel} from '../../../components/dashboard/categories_panel';
 import {CrunchPanel} from '../../../components/dashboard/crunch_panel';
@@ -9,6 +8,7 @@ import {RunwayHorizontal} from '../../../components/dashboard/runway_horizontal'
 import {RunwayVertical} from '../../../components/dashboard/runway_vertical';
 import {useAppState} from '../../../lib/queries';
 import {useMedia} from '../../../lib/use_media';
+import {buildViewModel} from '../../../lib/view-model';
 
 export default function RunwayPage() {
   const {data: state} = useAppState();

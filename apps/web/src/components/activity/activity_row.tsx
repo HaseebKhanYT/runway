@@ -1,6 +1,8 @@
 'use client';
 
-import {catHue, d, fm, type AppState, type Txn} from '@runway/shared';
+import {type AppState, type Txn} from '@runway/shared';
+import {catHue} from '../../lib/category-colors';
+import {d, fm} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 

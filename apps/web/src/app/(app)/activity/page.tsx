@@ -1,6 +1,7 @@
 'use client';
 
-import {d, fm, type AppState, type Txn} from '@runway/shared';
+import {type AppState, type Txn} from '@runway/shared';
+import {d, fm} from '../../../lib/format';
 import {useState} from 'react';
 import {ActivityRow} from '../../../components/activity/activity_row';
 import ui from '../../../components/ui/ui.module.css';

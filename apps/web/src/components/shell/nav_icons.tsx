@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import type {View} from '@runway/shared';
+import type {View} from '../../lib/view-model';
 
 /** Pure-CSS nav glyphs (catalog §1.0 navIcons) — no icon font. */
 export function NavIcon({view}: {view: View}) {

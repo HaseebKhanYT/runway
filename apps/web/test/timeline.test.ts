@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {layoutTimeline, spineGap} from '../src/runway_layout';
-import type {Bill} from '../src/types';
+import type {Bill} from '@runway/shared';
+import {layoutTimeline, spineGap} from '../src/lib/timeline';
 
 function makeBill(id: string, off: number, paid = false): Bill {
   return {

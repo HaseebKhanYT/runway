@@ -1,6 +1,9 @@
 import {cycleDays, DAYS_PER_MONTH, daysUntil, type Cadence} from './cycles';
-import {round2} from './money';
 import type {Goal} from './types';
+
+export function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
 
 export function goalRemaining(g: Goal): number {
   return Math.max(0, round2(g.target - g.saved));

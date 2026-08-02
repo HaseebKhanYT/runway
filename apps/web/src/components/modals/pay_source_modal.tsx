@@ -1,6 +1,7 @@
 'use client';
 
-import {fm, type AppState} from '@runway/shared';
+import {type AppState} from '@runway/shared';
+import {fm} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';

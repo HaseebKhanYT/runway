@@ -1,7 +1,10 @@
 'use client';
 
-import {d, fm, layoutTimeline, type AppState, type ViewModel} from '@runway/shared';
+import {type AppState} from '@runway/shared';
 import {useRef, useState} from 'react';
+import {d, fm} from '../../lib/format';
+import {layoutTimeline} from '../../lib/timeline';
+import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal_context';
 
 /** Desktop horizontal runway (catalog §1.1B). */

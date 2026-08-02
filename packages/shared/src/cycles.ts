@@ -1,4 +1,9 @@
-import {midnight, MS_PER_DAY} from './money';
+export const MS_PER_DAY = 86400000;
+
+/** Midnight of the given date in local time. */
+export function midnight(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
 
 export type Cadence = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 
