@@ -34,9 +34,20 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
           // free-standing financing bill would describe the same principal a
           // second time, and the runway, which sums bills without knowing they
           // are the same debt, would subtract it twice.
+          // The term is recorded with the principal. Without it syncCardBill
+          // cannot tell a plan from ordinary spending, and a pay-in-full card
+          // would demand the whole plan on its next due day.
           await tx.card.update({
             where: {id: card.id},
-            data: {balance: {increment: financed}, balanceUpdatedAt: new Date()},
+            data: {
+              balance: {increment: financed},
+              planInstallment: {increment: Math.ceil(financed / body.months)},
+              // A second plan on the same card adds its installment to the
+              // monthly figure and runs for whichever term is longer, so no
+              // plan is ever billed for fewer months than it was sold with.
+              planMonthsLeft: Math.max(card.planMonthsLeft, body.months),
+              balanceUpdatedAt: new Date(),
+            },
           });
           await syncCardBill(tx, userId, card.id);
         }

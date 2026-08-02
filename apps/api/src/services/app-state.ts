@@ -148,6 +148,8 @@ function serializeState(rows: Rows, today: Date): AppState {
       dueDay: c.dueDay,
       minPay: c.minPay == null ? null : toNumber(c.minPay),
       payInFull: c.payInFull,
+      planInstallment: toNumber(c.planInstallment),
+      planMonthsLeft: c.planMonthsLeft,
       rewards: (c.rewards as unknown as CardReward[]) ?? [],
       promoRate: c.promoRate == null ? null : toNumber(c.promoRate),
       promoEnd: isoDate(c.promoEnd),

@@ -114,6 +114,14 @@ model Card {
   dueDay           Int?
   minPay           Decimal?  @db.Decimal(12, 2)
   payInFull        Boolean   @default(false)
+  // A planner term plan carried on this card: the fixed monthly figure, and
+  // how many of them are left. Outstanding plan principal is the product of
+  // the two, so a payment is one decrement and un-paying is one increment —
+  // exactly reversible, and new spending never lands inside the plan. This
+  // part of the balance is not due on the next statement even when payInFull
+  // is set, which is the whole point of choosing a term.
+  planInstallment  Decimal   @default(0) @db.Decimal(12, 2)
+  planMonthsLeft   Int       @default(0)
   rewards          Json      @default("[]")
   promoRate        Decimal?  @db.Decimal(5, 2)
   promoEnd         DateTime?

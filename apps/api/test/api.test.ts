@@ -1,4 +1,4 @@
-import type {AppState} from '@runway/shared';
+import {computeRunway, type AppState} from '@runway/shared';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {app} from '../src/app';
 import {prisma} from '../src/lib/db';
@@ -500,6 +500,60 @@ describe('planner', () => {
     expect(after.cards.find((c) => c.id === repayable?.id)?.balance).toBe(
       (before?.balance ?? 0) - (bill?.amount ?? 0),
     );
+  });
+
+  it('puts one installment of a financed plan on the runway, not the principal', async () => {
+    // Issue #16's reported scenario, end to end: biweekly $2,000 pay, $2,000
+    // in the bank, a pay-in-full card with $10,000 of room, and an $8,000
+    // necessity financed over 12 months.
+    const today = new Date();
+    const nextPay = new Date(today);
+    nextPay.setUTCDate(nextPay.getUTCDate() + 14);
+    await call('POST', '/onboarding/complete', {
+      balance: 2000,
+      pay: 2000,
+      cadence: 'biweekly',
+      nextPay: nextPay.toISOString().slice(0, 10),
+      bills: [],
+      cards: [],
+      cats: [{name: 'Groceries', budget: 300}],
+    });
+
+    // A due day whose next occurrence is a few days out in any month, so the
+    // card bill always falls inside this cycle.
+    const dueDay = ((today.getUTCDate() + 2) % 28) + 1;
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Card X',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay,
+      payInFull: true,
+    });
+    const cardX = withCard.cards.find((c) => c.name === 'Card X');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: cardX?.id,
+      financed: 8000,
+    });
+
+    const bill = state.bills.find((b) => b.cardId === cardX?.id);
+    // ceil(8000 / 12), once — not the $8,000 principal a pay-in-full card
+    // would otherwise demand on its next due day.
+    expect(bill?.amount).toBe(667);
+    expect(state.cards.find((c) => c.id === cardX?.id)?.balance).toBe(8000);
+    expect(state.bills).toHaveLength(1);
+
+    const runway = computeRunway(state, today);
+    expect(bill?.off).toBeLessThan(runway.daysToPayday);
+    expect(runway.billsDueBeforePayday).toBe(667);
+    // The number the issue says the user should see: $2,000 − one installment.
+    expect(runway.safe).toBe(1333);
   });
 });
 

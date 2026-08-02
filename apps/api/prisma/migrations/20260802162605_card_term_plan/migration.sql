@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Card" ADD COLUMN     "planInstallment" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "planMonthsLeft" INTEGER NOT NULL DEFAULT 0;

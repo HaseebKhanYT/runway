@@ -1,11 +1,12 @@
-import {minPaymentGuess} from '@runway/shared';
+import {cardPaymentDue} from '@runway/shared';
 import type {PrismaTx} from '../lib/db';
 import {nextDueDate} from '../lib/dates';
 
 /**
  * The single choke point (catalog §2.2): keeps each card's "{card} payment"
- * debt bill in step with its due day, and pins pay-in-full bills to the live
- * balance no matter which code path moved it.
+ * debt bill in step with its due day and with the live balance, no matter
+ * which code path moved it. What the bill asks for is `cardPaymentDue` —
+ * one installment of any term plan, plus the card's own rule on the rest.
  */
 export async function syncCardBill(db: PrismaTx, userId: string, cardId: string): Promise<void> {
   const card = await db.card.findFirst({where: {id: cardId, userId}});
@@ -19,14 +20,16 @@ export async function syncCardBill(db: PrismaTx, userId: string, cardId: string)
     return;
   }
 
-  const balance = Number(card.balance);
-  const amount = card.payInFull
-    ? balance
-    : card.minPay != null
-      ? Number(card.minPay)
-      : existing
-        ? Number(existing.amount)
-        : minPaymentGuess(balance);
+  const amount = cardPaymentDue(
+    {
+      balance: Number(card.balance),
+      planInstallment: Number(card.planInstallment),
+      planMonthsLeft: card.planMonthsLeft,
+      payInFull: card.payInFull,
+      minPay: card.minPay == null ? null : Number(card.minPay),
+    },
+    existing ? Number(existing.amount) : null,
+  );
 
   const dueDate = nextDueDate(card.dueDay, new Date());
   if (existing) {

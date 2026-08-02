@@ -103,6 +103,10 @@ export interface Card {
   dueDay: number | null;
   minPay: number | null;
   payInFull: boolean;
+  /** One month of a planner term plan — fixed when the plan was locked in. */
+  planInstallment: number;
+  /** Installments still to pay on that plan. */
+  planMonthsLeft: number;
   rewards: CardReward[];
   promoRate: number | null;
   /** ISO date the promo rate ends, or null. */
