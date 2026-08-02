@@ -1,6 +1,6 @@
 import type {AppState} from '@runway/shared';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
-import {app} from '../src/index';
+import {app} from '../src/app';
 import {prisma} from '../src/db';
 
 process.env.DEV_AUTH_BYPASS = '1';
