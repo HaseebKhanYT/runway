@@ -1,0 +1,44 @@
+{
+  "profile": {
+    "cadence": "biweekly",
+    "nextPay": "2026-08-30",
+    "payAmount": 1700,
+    "primaryBalance": 7700
+  },
+  "bills": [
+    {
+      "name": "Hospital bill",
+      "amount": 8000,
+      "kind": "debt",
+      "dueDate": "2026-08-07",
+      "off": 5,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Card W payment",
+      "amount": 25,
+      "kind": "debt",
+      "dueDate": "2026-08-11",
+      "off": 9,
+      "paid": false,
+      "cardId": "cmsbqobqg0054tvy9ii7uehpe",
+      "oneTime": false,
+      "cycle": "monthly"
+    }
+  ],
+  "cards": [
+    {
+      "name": "Card W",
+      "limit": 10000,
+      "balance": 8000,
+      "dueDay": 11,
+      "minPay": null,
+      "payInFull": false,
+      "apr": 22
+    }
+  ],
+  "goals": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "cmsbr2oov00a4tvy9hntkynsz",
+  "name": "Card P",
+  "apr": 24.99,
+  "limit": 10000,
+  "balance": 500,
+  "dueDay": null,
+  "minPay": null,
+  "payInFull": false,
+  "rewards": [],
+  "promoRate": 0,
+  "promoEnd": "2026-08-02",
+  "balanceUpdatedAt": "2026-08-02T12:01:58.399Z"
+}

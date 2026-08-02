@@ -1,0 +1,285 @@
+{
+  "profile": {
+    "name": "Jordan Rivera",
+    "email": "jordan.rivera+clerk_test@runway-smoke.com",
+    "cadence": "biweekly",
+    "nextPay": "2026-08-16",
+    "payAmount": 2000,
+    "primaryName": "Main checking",
+    "primaryBalance": 2000,
+    "primaryLogo": null,
+    "notifBills": true,
+    "notifWeekly": false,
+    "onboarded": true
+  },
+  "accounts": [],
+  "bills": [
+    {
+      "id": "cmsbr01gm0094tvy9o0wmemfy",
+      "name": "Rent",
+      "amount": 4000,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "cycle": "monthly",
+      "paid": false,
+      "payFrom": null,
+      "cardId": null,
+      "oneTime": false,
+      "personal": false,
+      "lender": null
+    }
+  ],
+  "cats": [
+    {
+      "id": "cmsbr01c5008gtvy9kzmzyjkv",
+      "name": "Groceries",
+      "budget": 300,
+      "spent": 182.4,
+      "color": "#5b8c5a",
+      "locked": false,
+      "sortOrder": 0
+    },
+    {
+      "id": "cmsbr01c6008htvy9i6ip49ug",
+      "name": "Eating out",
+      "budget": 120,
+      "spent": 96.5,
+      "color": "#c9743d",
+      "locked": false,
+      "sortOrder": 1
+    },
+    {
+      "id": "cmsbr01c7008itvy95osv8ce1",
+      "name": "Transit",
+      "budget": 60,
+      "spent": 18,
+      "color": "#4f7fa8",
+      "locked": false,
+      "sortOrder": 2
+    },
+    {
+      "id": "cmsbr01c7008jtvy9c0s096a3",
+      "name": "Fun",
+      "budget": 80,
+      "spent": 35,
+      "color": "#8b6fd8",
+      "locked": false,
+      "sortOrder": 3
+    },
+    {
+      "id": "cmsbr01c7008ktvy927isfc2p",
+      "name": "Personal",
+      "budget": 50,
+      "spent": 12,
+      "color": "#b8607e",
+      "locked": false,
+      "sortOrder": 4
+    },
+    {
+      "id": "cmsbr01c8008ltvy94ggf8twv",
+      "name": "Uncategorized",
+      "budget": 0,
+      "spent": 0,
+      "color": "#a89b88",
+      "locked": true,
+      "sortOrder": 5
+    }
+  ],
+  "txns": [
+    {
+      "id": "cmsbr01g40093tvy94k9fh7ie",
+      "label": "Returned from Japan trip",
+      "amount": 860,
+      "cat": "Income",
+      "postedAt": "2026-08-02T11:59:54.964Z",
+      "off": 0,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01fs0092tvy97qam1lxc",
+      "label": "Returned from Emergency fund",
+      "amount": 400,
+      "cat": "Income",
+      "postedAt": "2026-08-02T11:59:54.952Z",
+      "off": 0,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01ca008ntvy9juin9s2k",
+      "label": "Lunch — burrito bowl",
+      "amount": -12.8,
+      "cat": "Eating out",
+      "postedAt": "2026-08-02T07:00:00.000Z",
+      "off": 0,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01c9008mtvy9sh1uf8bk",
+      "label": "Coffee",
+      "amount": -4.5,
+      "cat": "Eating out",
+      "postedAt": "2026-08-02T07:00:00.000Z",
+      "off": 0,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cb008ptvy9xpvspg1c",
+      "label": "Movie night",
+      "amount": -15,
+      "cat": "Fun",
+      "postedAt": "2026-08-01T07:00:00.000Z",
+      "off": -1,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cb008otvy9efcst6ep",
+      "label": "Groceries run",
+      "amount": -36.2,
+      "cat": "Groceries",
+      "postedAt": "2026-08-01T07:00:00.000Z",
+      "off": -1,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cc008rtvy9jjllf9kg",
+      "label": "Set aside → Japan trip",
+      "amount": -85,
+      "cat": "Goals",
+      "postedAt": "2026-07-30T07:00:00.000Z",
+      "off": -3,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cb008qtvy9we1zyrur",
+      "label": "Bus pass",
+      "amount": -18,
+      "cat": "Transit",
+      "postedAt": "2026-07-30T07:00:00.000Z",
+      "off": -3,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cc008stvy9a2jmnv4d",
+      "label": "Pharmacy",
+      "amount": -9.4,
+      "cat": "Personal",
+      "postedAt": "2026-07-29T07:00:00.000Z",
+      "off": -4,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cc008ttvy9ypaw23kw",
+      "label": "Spotify",
+      "amount": -11.99,
+      "cat": "Subscription",
+      "postedAt": "2026-07-27T07:00:00.000Z",
+      "off": -6,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cd008utvy9p53o3h5b",
+      "label": "Groceries run",
+      "amount": -42.7,
+      "cat": "Groceries",
+      "postedAt": "2026-07-26T07:00:00.000Z",
+      "off": -7,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cd008vtvy9ss9luiqr",
+      "label": "Dinner with Sam",
+      "amount": -28.5,
+      "cat": "Eating out",
+      "postedAt": "2026-07-25T07:00:00.000Z",
+      "off": -8,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cd008wtvy9t7k33urk",
+      "label": "Card A payment",
+      "amount": -160,
+      "cat": "Debt",
+      "postedAt": "2026-07-24T07:00:00.000Z",
+      "off": -9,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01ce008xtvy9kdu9n3cx",
+      "label": "Venmo from Alex",
+      "amount": 22,
+      "cat": "Income",
+      "postedAt": "2026-07-23T07:00:00.000Z",
+      "off": -10,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cf008ytvy9fi64j8rz",
+      "label": "Rent",
+      "amount": -950,
+      "cat": "Bills",
+      "postedAt": "2026-07-21T07:00:00.000Z",
+      "off": -12,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    },
+    {
+      "id": "cmsbr01cf008ztvy9jcn522x6",
+      "label": "Paycheck",
+      "amount": 1700,
+      "cat": "Income",
+      "postedAt": "2026-07-19T07:00:00.000Z",
+      "off": -14,
+      "src": "Main checking",
+      "cardId": null,
+      "billId": null
+    }
+  ],
+  "deletedTxns": [],
+  "goals": [
+    {
+      "id": "cmsbr02h70095tvy9p4iwx8mu",
+      "name": "New transmission",
+      "target": 8000,
+      "saved": 0,
+      "per": 334,
+      "note": "Aug 2027",
+      "due": "2027-08-01",
+      "necessity": true,
+      "paused": null,
+      "behind": false,
+      "financed": 0,
+      "financedFrom": null
+    }
+  ],
+  "cards": []
+}

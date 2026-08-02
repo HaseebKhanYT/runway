@@ -1,0 +1,136 @@
+{
+  "profile": {
+    "cadence": "weekly",
+    "nextPay": "2026-08-16",
+    "payAmount": 1000,
+    "primaryBalance": 6000
+  },
+  "bills": [
+    {
+      "name": "Spotify",
+      "amount": 11.99,
+      "kind": "subscription",
+      "dueDate": "2026-07-27",
+      "off": -6,
+      "paid": true,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Rent",
+      "amount": 950,
+      "kind": "survival",
+      "dueDate": "2026-08-05",
+      "off": 3,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Electric",
+      "amount": 74,
+      "kind": "survival",
+      "dueDate": "2026-08-09",
+      "off": 7,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Phone",
+      "amount": 45,
+      "kind": "survival",
+      "dueDate": "2026-08-10",
+      "off": 8,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Card A payment",
+      "amount": 160,
+      "kind": "debt",
+      "dueDate": "2026-08-11",
+      "off": 9,
+      "paid": false,
+      "cardId": "cmsbrexuh00dwtvy9t3b7oeup",
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Netflix",
+      "amount": 15.49,
+      "kind": "subscription",
+      "dueDate": "2026-08-13",
+      "off": 11,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Gym",
+      "amount": 40,
+      "kind": "subscription",
+      "dueDate": "2026-08-15",
+      "off": 13,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    }
+  ],
+  "cards": [
+    {
+      "name": "Card A",
+      "limit": 3500,
+      "balance": 1240,
+      "dueDay": 11,
+      "minPay": 160,
+      "payInFull": false,
+      "apr": 17.9
+    },
+    {
+      "name": "Card B",
+      "limit": 2000,
+      "balance": 650,
+      "dueDay": null,
+      "minPay": null,
+      "payInFull": false,
+      "apr": 21.9
+    }
+  ],
+  "goals": [
+    {
+      "name": "Emergency fund",
+      "target": 1000,
+      "saved": 400,
+      "per": 40,
+      "financed": 0,
+      "financedFrom": null,
+      "paused": null
+    },
+    {
+      "name": "Japan trip",
+      "target": 2400,
+      "saved": 860,
+      "per": 85,
+      "financed": 0,
+      "financedFrom": null,
+      "paused": null
+    },
+    {
+      "name": "New laptop",
+      "target": 2400,
+      "saved": 0,
+      "per": 100,
+      "financed": 0,
+      "financedFrom": null,
+      "paused": null
+    }
+  ]
+}

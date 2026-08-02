@@ -1,0 +1,31 @@
+{
+  "card": {
+    "id": "cmsbr8aff00cytvy9qeqp0lww",
+    "name": "Card Z",
+    "apr": 0,
+    "limit": 5000,
+    "balance": 1000,
+    "dueDay": 11,
+    "minPay": 100,
+    "payInFull": false,
+    "rewards": [],
+    "promoRate": null,
+    "promoEnd": null,
+    "balanceUpdatedAt": "2026-08-02T12:06:19.850Z"
+  },
+  "bill": {
+    "id": "cmsbr8afl00cztvy9bu4b8cn3",
+    "name": "Card Z payment",
+    "amount": 100,
+    "kind": "debt",
+    "dueDate": "2026-08-11",
+    "off": 9,
+    "cycle": "monthly",
+    "paid": false,
+    "payFrom": "checking",
+    "cardId": "cmsbr8aff00cytvy9qeqp0lww",
+    "oneTime": false,
+    "personal": false,
+    "lender": null
+  }
+}

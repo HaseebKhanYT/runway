@@ -1,0 +1,45 @@
+{
+  "profile": {
+    "cadence": "fortnightly",
+    "nextPay": "2026-09-01",
+    "payAmount": 4000,
+    "primaryBalance": 7260
+  },
+  "bills": [
+    {
+      "name": "Rent",
+      "amount": 2000,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Insurance",
+      "amount": 550,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Utilities",
+      "amount": 450,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    }
+  ],
+  "cards": [],
+  "goals": []
+}

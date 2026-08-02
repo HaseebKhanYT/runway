@@ -1,0 +1,65 @@
+{
+  "profile": {
+    "cadence": "biweekly",
+    "nextPay": "2026-08-16",
+    "payAmount": 2000,
+    "primaryBalance": 2000
+  },
+  "bills": [
+    {
+      "name": "Card V payment",
+      "amount": 8000,
+      "kind": "debt",
+      "dueDate": "2026-08-11",
+      "off": 9,
+      "paid": false,
+      "cardId": "cmsbqrbf50066tvy92z2tdtot",
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Hospital bill financing",
+      "amount": 667,
+      "kind": "debt",
+      "dueDate": "2026-08-12",
+      "off": 10,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    },
+    {
+      "name": "Rent",
+      "amount": 4000,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    }
+  ],
+  "cards": [
+    {
+      "name": "Card V",
+      "limit": 10000,
+      "balance": 8000,
+      "dueDay": 11,
+      "minPay": null,
+      "payInFull": true,
+      "apr": 24.99
+    }
+  ],
+  "goals": [
+    {
+      "name": "Hospital bill",
+      "target": 8000,
+      "saved": 8000,
+      "per": 334,
+      "financed": 8000,
+      "financedFrom": "Card V",
+      "paused": null
+    }
+  ]
+}

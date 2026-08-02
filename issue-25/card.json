@@ -1,0 +1,14 @@
+{
+  "id": "cmsbr6ipx00c1tvy96jz5r4ew",
+  "name": "Card R",
+  "apr": 24.99,
+  "limit": 10000,
+  "balance": 500,
+  "dueDay": null,
+  "minPay": null,
+  "payInFull": false,
+  "rewards": [],
+  "promoRate": 4.9,
+  "promoEnd": "2027-01-29",
+  "balanceUpdatedAt": "2026-08-02T12:04:57.284Z"
+}

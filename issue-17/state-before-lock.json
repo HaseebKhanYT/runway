@@ -1,0 +1,33 @@
+{
+  "profile": {
+    "cadence": "biweekly",
+    "nextPay": "2026-08-16",
+    "payAmount": 2000,
+    "primaryBalance": 2000
+  },
+  "bills": [
+    {
+      "name": "Rent",
+      "amount": 4000,
+      "kind": "survival",
+      "dueDate": "2026-08-22",
+      "off": 20,
+      "paid": false,
+      "cardId": null,
+      "oneTime": false,
+      "cycle": "monthly"
+    }
+  ],
+  "cards": [
+    {
+      "name": "Card Y",
+      "limit": 10000,
+      "balance": 0,
+      "dueDay": null,
+      "minPay": null,
+      "payInFull": false,
+      "apr": 21.9
+    }
+  ],
+  "goals": []
+}

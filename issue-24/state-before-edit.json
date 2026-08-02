@@ -1,0 +1,14 @@
+{
+  "id": "cmsbr4i5c00b2tvy9ml3idjya",
+  "name": "Card Q",
+  "apr": 24.99,
+  "limit": 10000,
+  "balance": 500,
+  "dueDay": null,
+  "minPay": null,
+  "payInFull": false,
+  "rewards": [],
+  "promoRate": 0,
+  "promoEnd": "2026-12-20",
+  "balanceUpdatedAt": "2026-08-02T12:03:23.232Z"
+}
