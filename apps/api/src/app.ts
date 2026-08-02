@@ -1,6 +1,6 @@
 import {Hono} from 'hono';
 import {cors} from 'hono/cors';
-import {authMiddleware} from './auth';
+import {authMiddleware} from './middleware/auth';
 import {ensureUser, loadState} from './state';
 import {accountsRoutes} from './routes/accounts';
 import {billsRoutes} from './routes/bills';
