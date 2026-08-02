@@ -1,4 +1,10 @@
-import {computeRunway, type AppState} from '@runway/shared';
+import {
+  computeRunway,
+  goalBehind,
+  goalPerPaycheck,
+  perPaycheckFor,
+  type AppState,
+} from '@runway/shared';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {app} from '../src/app';
 import {prisma} from '../src/lib/db';
@@ -351,6 +357,26 @@ describe('onboarding', () => {
 });
 
 describe('planner', () => {
+  it('opens a plan on the set-aside the runway will read back', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Boiler',
+      target: 8000,
+      months: 2,
+      kind: 'necessity',
+      pausedIds: [],
+    });
+
+    const goal = state.goals.find((g) => g.name === 'Boiler');
+    const today = new Date();
+    // The number written down and the number read back have to be the same
+    // one. They diverged whenever the term did not hold exactly `months × 2`
+    // paychecks, which depends on the day of the month this runs — so the
+    // assertion is the invariant, not a fixed figure.
+    expect(goal?.per).toBe(goalPerPaycheck(goal!, state.profile.cadence, today));
+    expect(goalBehind(goal!, state.profile.cadence, today)).toBe(false);
+  });
+
   it('a card over its limit finances nothing and funds no goal', async () => {
     await call('POST', '/reset-demo');
     const {state: withCard} = await call('POST', '/cards', {
@@ -607,9 +633,15 @@ describe('planner', () => {
       cardId: helper?.id,
       financed: 2000,
     });
-    // $4,000 left over 10 months of two paychecks — not the whole $6,000,
-    // $2,000 of which the card has already paid.
-    expect(state.goals.find((g) => g.name === 'New roof')?.per).toBe(200);
+    // $4,000 spread over the paychecks left — not the whole $6,000, $2,000 of
+    // which the card has already paid. Asserted against the same arithmetic
+    // the app reads the goal back with rather than a fixed figure, because
+    // how many paychecks land before the due date depends on today's date.
+    const goal = state.goals.find((g) => g.name === 'New roof')!;
+    const cadence = state.profile.cadence;
+    const today = new Date();
+    expect(goal.per).toBe(perPaycheckFor(4000, goal.due!, cadence, today));
+    expect(goal.per).toBeLessThan(perPaycheckFor(6000, goal.due!, cadence, today));
   });
 });
 

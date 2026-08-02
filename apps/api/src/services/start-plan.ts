@@ -1,4 +1,4 @@
-import type {plannerStartSchema} from '@runway/shared';
+import {perPaycheckFor, type Cadence, type plannerStartSchema} from '@runway/shared';
 import type {z} from 'zod';
 import {prisma} from '../lib/db';
 import {syncCardBill} from './card-bill-sync';
@@ -57,7 +57,22 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
     // Only the part the card did not front has to come out of paychecks.
     // Dividing the whole target instead asked for money the plan had already
     // borrowed, which is how a goal could open already behind.
-    const per = Math.max(0, Math.ceil((body.target - financed) / (body.months * 2)));
+    //
+    // Spread over the paychecks that land before that due date, not over
+    // `months × 2`. The two differ whenever the term does not start on the
+    // first of a month, and `goalBehind` compares the stored figure against
+    // the first — so a plan begun mid-month opened flagged as behind on the
+    // day it was created.
+    const profile = await tx.profile.findUnique({where: {userId}});
+    const per = perPaycheckFor(
+      Math.max(0, body.target - financed),
+      // The very string `/me/state` will serve for this goal, so the figure
+      // stored beside the date cannot disagree with the one computed from it
+      // on a server whose clock is not UTC.
+      due.toISOString().slice(0, 10),
+      (profile?.cadence ?? 'biweekly') as Cadence,
+      today,
+    );
     await tx.goal.create({
       data: {
         userId,

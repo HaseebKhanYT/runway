@@ -7,6 +7,7 @@ import {
   goalPerPaycheck,
   goalPerMonth,
   goalRemaining,
+  perPaycheckFor,
   round2,
   spareMonthly,
 } from '../src/goals';
@@ -86,6 +87,34 @@ describe('goalBehind', () => {
   });
   it('never behind when funded', () => {
     expect(goalBehind(makeGoal({saved: 1000, behind: true}), 'biweekly', TODAY)).toBe(false);
+  });
+});
+
+describe('perPaycheckFor', () => {
+  it('counts the paychecks before the due date, not two per month', () => {
+    // A two-month plan begun on 16 July is due 1 September — 47 days, so
+    // three biweekly paychecks land before it, not the four that "2 × 2"
+    // assumes. $2,667 is what the runway will charge; $2,000 is the figure
+    // that used to be written down beside it.
+    expect(perPaycheckFor(8000, '2026-09-01', 'biweekly', TODAY)).toBe(2667);
+    expect(perPaycheckFor(8000, '2026-09-01', 'weekly', TODAY)).toBe(1334);
+  });
+
+  it('agrees with what the runway reads back, so a plan cannot open behind', () => {
+    const due = '2026-09-01';
+    const per = perPaycheckFor(8000, due, 'biweekly', TODAY);
+    const goal = makeGoal({target: 8000, saved: 0, per, due});
+    expect(goalPerPaycheck(goal, 'biweekly', TODAY)).toBe(per);
+    expect(goalBehind(goal, 'biweekly', TODAY)).toBe(false);
+    // The old arithmetic, for contrast: same goal, `months × 2` per.
+    expect(goalBehind(makeGoal({target: 8000, saved: 0, per: 2000, due}), 'biweekly', TODAY)).toBe(
+      true,
+    );
+  });
+
+  it('never asks for more than is left, however close the due date', () => {
+    expect(perPaycheckFor(300, '2026-07-17', 'biweekly', TODAY)).toBe(300);
+    expect(perPaycheckFor(0, '2027-07-17', 'biweekly', TODAY)).toBe(0);
   });
 });
 

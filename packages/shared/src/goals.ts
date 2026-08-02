@@ -22,13 +22,31 @@ export function goalChecks(g: Goal, cadence: Cadence, today: Date): number | nul
   return Math.max(1, Math.floor(days / cycleDays(cadence)));
 }
 
+/**
+ * The set-aside a target and a due date imply, split out of `goalPerPaycheck`
+ * so a caller that is about to write a goal can use the same arithmetic the
+ * runway will read it back with. A term of N months does not hold 2N
+ * paychecks — from mid-July, 1 September is three away, not four — and a goal
+ * whose stored `per` was computed the second way opens already behind.
+ */
+export function perPaycheckFor(
+  remaining: number,
+  dueIso: string,
+  cadence: Cadence,
+  today: Date,
+): number {
+  if (remaining <= 0) return 0;
+  const days = Math.max(0, daysUntil(dueIso, today));
+  const checks = Math.max(1, Math.floor(days / cycleDays(cadence)));
+  return Math.min(remaining, Math.ceil(remaining / checks));
+}
+
 /** Live per-paycheck set-aside: what's left over the paychecks left. */
 export function goalPerPaycheck(g: Goal, cadence: Cadence, today: Date): number {
   const remaining = goalRemaining(g);
   if (remaining <= 0) return 0;
   if (!g.due) return g.per || 0;
-  const checks = goalChecks(g, cadence, today) ?? 1;
-  return Math.min(remaining, Math.ceil(remaining / checks));
+  return perPaycheckFor(remaining, g.due, cadence, today);
 }
 
 /** What the goal demands per calendar month — independent of pay cadence. */
