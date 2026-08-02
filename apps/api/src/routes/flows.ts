@@ -9,46 +9,6 @@ import {loadState} from '../services/app-state';
 
 export const flowsRoutes = new Hono();
 
-/** Lock a cash-crunch plan (catalog §2.2). */
-flowsRoutes.post('/crunch/lock', zValidator('json', crunchLockSchema), async (c) => {
-  const userId = c.get('userId');
-  const {pausedGoalIds, cardId, advance} = c.req.valid('json');
-  await prisma.$transaction(async (tx) => {
-    if (pausedGoalIds.length > 0) {
-      await tx.goal.updateMany({
-        where: {userId, id: {in: pausedGoalIds}},
-        data: {paused: '__crunch'},
-      });
-    }
-    if (cardId && advance && advance > 0) {
-      const card = await tx.card.findFirst({where: {id: cardId, userId}});
-      if (card) {
-        await tx.card.update({
-          where: {id: card.id},
-          data: {balance: {increment: advance}, balanceUpdatedAt: new Date()},
-        });
-        await tx.profile.update({
-          where: {userId},
-          data: {primaryBalance: {increment: advance}},
-        });
-        await tx.txn.create({
-          data: {
-            userId,
-            label: `Advance from ${card.name}`,
-            amount: advance,
-            cat: 'Income',
-            postedAt: new Date(),
-            src: card.name,
-            cardId: card.id,
-          },
-        });
-        await syncCardBill(tx, userId, card.id);
-      }
-    }
-  });
-  return c.json(await loadState(userId));
-});
-
 /** Friend loan: cash today, a "Pay back" debt bill on the runway (catalog §1.10). */
 flowsRoutes.post('/loans', zValidator('json', loanCreateSchema), async (c) => {
   const userId = c.get('userId');
