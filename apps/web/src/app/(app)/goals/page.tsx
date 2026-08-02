@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  computePlan,
   computeRunway,
   fm,
   goalBarSplit,
@@ -15,6 +14,7 @@ import {
 } from '@runway/shared';
 import {useState} from 'react';
 import ui from '../../../components/ui/ui.module.css';
+import {computePlan} from '../../../lib/planner';
 import {useAppState, useFlow} from '../../../lib/queries';
 
 function goalStatus(goal: Goal, state: AppState, today: Date): {text: string; color: string} {
