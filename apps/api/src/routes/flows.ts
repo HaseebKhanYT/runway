@@ -1,10 +1,5 @@
 import {zValidator} from '@hono/zod-validator';
-import {
-  crunchLockSchema,
-  loanCreateSchema,
-  plannerStartSchema,
-  setAsideSchema,
-} from '@runway/shared';
+import {crunchLockSchema, loanCreateSchema, plannerStartSchema} from '@runway/shared';
 import {Hono} from 'hono';
 import {syncCardBill} from '../services/card-bill-sync';
 import {prisma} from '../lib/db';
@@ -13,31 +8,6 @@ import {adjustCashSource, resolveSource} from '../services/payment-source';
 import {loadState} from '../services/app-state';
 
 export const flowsRoutes = new Hono();
-
-/** Manual "+ Set aside now" on a goal. */
-flowsRoutes.post('/goals/:id/set-aside', zValidator('json', setAsideSchema), async (c) => {
-  const userId = c.get('userId');
-  const {amount, source} = c.req.valid('json');
-  await prisma.$transaction(async (tx) => {
-    const goal = await tx.goal.findFirst({where: {id: c.req.param('id'), userId}});
-    if (!goal) return;
-    const resolved = await resolveSource(tx, userId, source);
-    if (resolved.kind === 'card') return; // set-asides come from cash only
-    await adjustCashSource(tx, userId, resolved, -amount);
-    await tx.goal.update({where: {id: goal.id}, data: {saved: {increment: amount}}});
-    await tx.txn.create({
-      data: {
-        userId,
-        label: `Set aside → ${goal.name}`,
-        amount: -amount,
-        cat: 'Goals',
-        postedAt: new Date(),
-        src: resolved.label,
-      },
-    });
-  });
-  return c.json(await loadState(userId));
-});
 
 /** Lock a cash-crunch plan (catalog §2.2). */
 flowsRoutes.post('/crunch/lock', zValidator('json', crunchLockSchema), async (c) => {
