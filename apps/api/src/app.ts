@@ -9,6 +9,7 @@ import {cardsRoutes} from './routes/cards';
 import {flowsRoutes} from './routes/flows';
 import {goalsRoutes} from './routes/goals';
 import {onboardingRoutes} from './routes/onboarding';
+import {paydayRoutes} from './routes/payday';
 import {plaidRoutes} from './routes/plaid';
 import {transactionsRoutes} from './routes/transactions';
 
@@ -70,4 +71,5 @@ app.route('/', cardsRoutes);
 app.route('/', transactionsRoutes);
 app.route('/', flowsRoutes);
 app.route('/', onboardingRoutes);
+app.route('/', paydayRoutes);
 app.route('/', plaidRoutes);
