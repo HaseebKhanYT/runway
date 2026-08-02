@@ -631,9 +631,11 @@ function PlannerCard({state}: {state: AppState}) {
           </div>
           {!plan.sustainable && (
             <div style={{fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.4}}>
-              ⚠ Your paycheck alone does not carry this —{' '}
-              {formatMoney(-plan.projection.cycleSurplus)} a cycle comes out of the balance you
-              already have. It works until that runs down.
+              ⚠ Your paycheck does not carry this — {formatMoney(-plan.projection.cycleSurplus)} a
+              cycle would come out of a balance nothing replaces, so the day above is negative.
+              {plan.minViableMonths != null
+                ? ` ${plan.minViableMonths} months is the shortest term that clears it.`
+                : ' No term inside five years clears it.'}
             </div>
           )}
           {plan.promoCliff && (
