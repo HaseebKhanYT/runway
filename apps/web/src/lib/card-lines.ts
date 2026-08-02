@@ -1,4 +1,5 @@
-import {daysUntil, fm, payoffProjection, type Bill, type Card} from '@runway/shared';
+import {daysUntil, payoffProjection, type Bill, type Card} from '@runway/shared';
+import {fm} from './format';
 
 /** Reward-pill palette by category keyword (catalog §4.1). */
 export function rewardPillColors(cat: string): {bg: string; fg: string} {

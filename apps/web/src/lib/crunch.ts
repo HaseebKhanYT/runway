@@ -1,7 +1,5 @@
 import {
-  d,
   effApr,
-  fm,
   goalPer,
   pooledBalance,
   type AppState,
@@ -10,6 +8,7 @@ import {
   type Goal,
   type RunwaySummary,
 } from '@runway/shared';
+import {d, fm} from './format';
 
 export interface CrunchGoalLever {
   goal: Goal;

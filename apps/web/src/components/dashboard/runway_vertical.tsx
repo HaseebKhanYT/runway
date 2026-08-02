@@ -1,6 +1,7 @@
 'use client';
 
-import {d, fm, type AppState} from '@runway/shared';
+import {type AppState} from '@runway/shared';
+import {d, fm} from '../../lib/format';
 import {spineGap} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal_context';

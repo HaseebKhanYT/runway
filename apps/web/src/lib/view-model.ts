@@ -1,13 +1,11 @@
 import {
   computeRunway,
-  d,
-  dayF,
-  fm,
   goalPer,
   pooledBalance,
   type AppState,
   type RunwaySummary,
 } from '@runway/shared';
+import {d, dayF, fm} from './format';
 
 export type View = 'runway' | 'bills' | 'goals' | 'activity' | 'cards' | 'settings';
 

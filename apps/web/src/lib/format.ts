@@ -1,5 +1,3 @@
-const MS_PER_DAY = 86400000;
-
 /** Money formatter — U+2212 minus sign per the design (catalog §3.9). */
 export function fm(n: number, showCents = true): string {
   const neg = n < 0;
@@ -35,14 +33,3 @@ export function ordSuf(n: number): string {
       return 'th';
   }
 }
-
-export function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-/** Midnight of the given date in local time. */
-export function midnight(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-}
-
-export {MS_PER_DAY};

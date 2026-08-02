@@ -1,6 +1,7 @@
 'use client';
 
-import {daysUntil, fm, type AppState} from '@runway/shared';
+import {daysUntil, type AppState} from '@runway/shared';
+import {fm} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';

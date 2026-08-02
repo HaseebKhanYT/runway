@@ -1,6 +1,7 @@
 'use client';
 
-import {daysUntil, fm, type AppState, type Card, type CardReward} from '@runway/shared';
+import {daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
+import {fm} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';

@@ -7,11 +7,19 @@ import {
   goalPer,
   goalPerMonth,
   goalRemaining,
+  round2,
   spareMonthly,
 } from '../src/goal_math';
 import type {Goal} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');
+
+describe('round2', () => {
+  it('rounds to cents', () => {
+    expect(round2(1.005)).toBe(1.01);
+    expect(round2(1540.004)).toBe(1540);
+  });
+});
 
 function makeGoal(partial: Partial<Goal>): Goal {
   return {

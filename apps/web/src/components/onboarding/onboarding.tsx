@@ -1,7 +1,8 @@
 'use client';
 
 import {useUser} from '@clerk/nextjs';
-import {fm, ordSuf, type Cadence} from '@runway/shared';
+import {type Cadence} from '@runway/shared';
+import {fm, ordSuf} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand_mark';

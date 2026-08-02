@@ -1,6 +1,7 @@
 'use client';
 
-import {fm, pooledBalance, type AccountType, type AppState} from '@runway/shared';
+import {pooledBalance, type AccountType, type AppState} from '@runway/shared';
+import {fm} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';

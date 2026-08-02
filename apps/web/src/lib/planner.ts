@@ -1,12 +1,12 @@
 import {
   effApr,
-  fm,
   goalPer,
   type AppState,
   type Card,
   type Goal,
   type RunwaySummary,
 } from '@runway/shared';
+import {fm} from './format';
 
 export interface PlanInput {
   name: string;

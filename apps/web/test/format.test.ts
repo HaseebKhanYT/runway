@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {d, dayF, fm, ordSuf, round2} from '../src/money';
+import {d, dayF, fm, ordSuf} from '../src/lib/format';
 
 describe('fm', () => {
   it('formats with cents by default', () => {
@@ -46,12 +46,5 @@ describe('ordSuf', () => {
     expect(ordSuf(21)).toBe('st');
     expect(ordSuf(22)).toBe('nd');
     expect(ordSuf(23)).toBe('rd');
-  });
-});
-
-describe('round2', () => {
-  it('rounds to cents', () => {
-    expect(round2(1.005)).toBe(1.01);
-    expect(round2(1540.004)).toBe(1540);
   });
 });

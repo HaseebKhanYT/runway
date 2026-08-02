@@ -1,6 +1,7 @@
 'use client';
 
-import {fm, pooledBalance, type AppState} from '@runway/shared';
+import {pooledBalance, type AppState} from '@runway/shared';
+import {fm} from '../../lib/format';
 import {useMemo, useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';

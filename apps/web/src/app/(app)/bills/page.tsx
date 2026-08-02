@@ -1,6 +1,7 @@
 'use client';
 
-import {fm, ordSuf, type AppState, type Bill, type BillKind, d} from '@runway/shared';
+import {type AppState, type Bill, type BillKind} from '@runway/shared';
+import {d, fm, ordSuf} from '../../../lib/format';
 import {useState, type DragEvent, type TouchEvent} from 'react';
 import {useModals} from '../../../components/modals/modal_context';
 import ui from '../../../components/ui/ui.module.css';

@@ -1,7 +1,8 @@
 'use client';
 
 import {useClerk} from '@clerk/nextjs';
-import {fm, type Cadence} from '@runway/shared';
+import {type Cadence} from '@runway/shared';
+import {fm} from '../../../lib/format';
 import Link from 'next/link';
 import {useState, type ReactNode} from 'react';
 import {Onboarding} from '../../../components/onboarding/onboarding';
