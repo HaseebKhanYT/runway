@@ -1,17 +1,12 @@
-import {zValidator} from '@hono/zod-validator';
-import {crunchLockSchema, loanCreateSchema, plannerStartSchema} from '@runway/shared';
-import {Hono} from 'hono';
-import {syncCardBill} from '../services/card-bill-sync';
+import type {plannerStartSchema} from '@runway/shared';
+import type {z} from 'zod';
 import {prisma} from '../lib/db';
-import {adjustCashSource, resolveSource} from '../services/payment-source';
-import {loadState} from '../services/app-state';
+import {syncCardBill} from './card-bill-sync';
 
-export const flowsRoutes = new Hono();
+type PlanStartInput = z.infer<typeof plannerStartSchema>;
 
 /** Start a planner goal, pausing wishes and financing on a card (catalog §2.2). */
-flowsRoutes.post('/planner/start', zValidator('json', plannerStartSchema), async (c) => {
-  const userId = c.get('userId');
-  const body = c.req.valid('json');
+export async function startPlan(userId: string, body: PlanStartInput): Promise<void> {
   const today = new Date();
   await prisma.$transaction(async (tx) => {
     if (body.pausedIds.length > 0) {
@@ -66,5 +61,4 @@ flowsRoutes.post('/planner/start', zValidator('json', plannerStartSchema), async
       },
     });
   });
-  return c.json(await loadState(userId));
-});
+}
