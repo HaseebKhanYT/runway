@@ -9,7 +9,7 @@ import {
   goalRemaining,
   round2,
   spareMonthly,
-} from '../src/goal_math';
+} from '../src/goals';
 import type {Goal} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {demoData} from '../src/demo_data';
+import {demoData} from '../src/demo-data';
 
 const TODAY = new Date('2026-07-16T12:00:00');
 

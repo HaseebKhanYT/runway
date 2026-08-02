@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {computeRunway} from '../src/safe_per_day';
+import {computeRunway} from '../src/runway';
 import type {AppState, Bill} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');

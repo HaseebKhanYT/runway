@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {effApr, minPaymentGuess, payoffProjection, suggestRewards} from '../src/card_math';
+import {effApr, minPaymentGuess, payoffProjection, suggestRewards} from '../src/cards';
 import type {Card} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');

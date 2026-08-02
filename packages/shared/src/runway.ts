@@ -1,6 +1,11 @@
 import {cycleDays, DAYS_PER_MONTH, daysUntil} from './cycles';
-import {goalPer} from './goal_math';
-import {pooledBalance, type AppState, type Goal} from './types';
+import {goalPer} from './goals';
+import {type AppState, type Goal} from './types';
+
+/** Everything spendable — the total that drives the runway. */
+export function pooledBalance(state: AppState): number {
+  return state.profile.primaryBalance + state.accounts.reduce((sum, a) => sum + a.balance, 0);
+}
 
 export interface RunwaySummary {
   CYCLE: number;

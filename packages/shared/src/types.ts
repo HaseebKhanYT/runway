@@ -121,8 +121,3 @@ export interface AppState {
   goals: Goal[];
   cards: Card[];
 }
-
-/** Everything spendable — the total that drives the runway. */
-export function pooledBalance(state: AppState): number {
-  return state.profile.primaryBalance + state.accounts.reduce((sum, a) => sum + a.balance, 0);
-}
