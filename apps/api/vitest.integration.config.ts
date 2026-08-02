@@ -8,5 +8,9 @@ export default defineConfig({
     // concurrent files would delete each other's rows.
     fileParallelism: false,
     testTimeout: 20_000,
+    // Pinned here rather than inherited from the shell. turbo runs tasks in
+    // strict env mode, so a TZ exported by CI or a developer never reaches
+    // vitest; the flake in #41 only reproduced west of UTC.
+    env: {TZ: 'UTC'},
   },
 });

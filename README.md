@@ -198,10 +198,14 @@ The non-recursive integration glob is what keeps `test/unit/` out of it. A new
 `apps/api` test therefore belongs in `test/unit/` (no database) or directly in
 `test/` (database) — a subdirectory other than `unit/` is run by neither.
 
-All three DB-free configs pin `TZ: 'UTC'`, because several modules read local
-date parts. `apps/api/test/unit/dates.test.ts` opens with a tripwire asserting the
+All four configs pin `TZ: 'UTC'`, because several modules read local date
+parts. `apps/api/test/unit/dates.test.ts` opens with a tripwire asserting the
 pin took effect, so a config regression fails loudly instead of silently
 changing what the tests mean.
+
+The pin has to live in the config rather than the environment. turbo runs tasks
+in strict env mode, so a `TZ` exported by a shell or by a CI job is filtered out
+before vitest starts unless it is declared in `turbo.json`.
 
 `prisma generate` is wired as a turbo task dependency (`@runway/api#db:generate`)
 rather than a `pre*` script, since pnpm 9 does not run those by default. It
