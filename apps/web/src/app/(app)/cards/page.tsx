@@ -1,17 +1,10 @@
 'use client';
 
-import {
-  cardLine,
-  daysUntil,
-  fm,
-  rewardPillColors,
-  type AppState,
-  type Card,
-  type CardReward,
-} from '@runway/shared';
+import {daysUntil, fm, type AppState, type Card, type CardReward} from '@runway/shared';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';
+import {cardLine, rewardPillColors} from '../../../lib/card-lines';
 import {useAppState, useFlow} from '../../../lib/queries';
 
 interface CardForm {
