@@ -1,6 +1,7 @@
 'use client';
 
-import {computeCrunch, fm, type AppState, type ViewModel} from '@runway/shared';
+import {computeCrunch, fm, type AppState} from '@runway/shared';
+import type {ViewModel} from '../../lib/view-model';
 import {useState, type ReactNode} from 'react';
 import {useFlow} from '../../lib/queries';
 import {useModals} from '../modals/modal_context';

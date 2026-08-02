@@ -1,7 +1,8 @@
 'use client';
 
-import {d, fm, type AppState, type ViewModel} from '@runway/shared';
+import {d, fm, type AppState} from '@runway/shared';
 import {spineGap} from '../../lib/timeline';
+import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal_context';
 
 /** Mobile vertical runway spine (catalog §1.1C). */

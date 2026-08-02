@@ -6,6 +6,5 @@ export * from './safe_per_day';
 export * from './card_math';
 export * from './crunch_math';
 export * from './planner_math';
-export * from './view_model';
 export * from './demo_data';
 export * from './schemas';

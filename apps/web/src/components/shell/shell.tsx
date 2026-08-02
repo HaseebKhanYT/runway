@@ -1,10 +1,11 @@
 'use client';
 
-import {buildViewModel, PAGE_TITLES, type AppState, type View} from '@runway/shared';
+import {type AppState} from '@runway/shared';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
 import {useMedia} from '../../lib/use_media';
+import {buildViewModel, PAGE_TITLES, type View} from '../../lib/view-model';
 import {BrandMark} from '../brand/brand_mark';
 import {useModals} from '../modals/modal_context';
 import {NavIcon} from './nav_icons';

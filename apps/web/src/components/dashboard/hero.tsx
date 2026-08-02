@@ -1,6 +1,6 @@
 'use client';
 
-import type {ViewModel} from '@runway/shared';
+import type {ViewModel} from '../../lib/view-model';
 
 /** Dashboard hero (catalog §1.1A). */
 export function Hero({vm}: {vm: ViewModel}) {
