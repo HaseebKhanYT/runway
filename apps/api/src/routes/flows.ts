@@ -3,48 +3,10 @@ import {crunchLockSchema, loanCreateSchema, plannerStartSchema} from '@runway/sh
 import {Hono} from 'hono';
 import {syncCardBill} from '../services/card-bill-sync';
 import {prisma} from '../lib/db';
-import {parseIsoDateUtc} from '../lib/dates';
 import {adjustCashSource, resolveSource} from '../services/payment-source';
 import {loadState} from '../services/app-state';
 
 export const flowsRoutes = new Hono();
-
-/** Friend loan: cash today, a "Pay back" debt bill on the runway (catalog §1.10). */
-flowsRoutes.post('/loans', zValidator('json', loanCreateSchema), async (c) => {
-  const userId = c.get('userId');
-  const {who, amount, dueDate} = c.req.valid('json');
-  await prisma.$transaction(async (tx) => {
-    const profile = await tx.profile.findUniqueOrThrow({where: {userId}});
-    await tx.profile.update({
-      where: {userId},
-      data: {primaryBalance: {increment: amount}},
-    });
-    await tx.txn.create({
-      data: {
-        userId,
-        label: `Loan from ${who}`,
-        amount,
-        cat: 'Income',
-        postedAt: new Date(),
-        src: profile.primaryName,
-      },
-    });
-    await tx.bill.create({
-      data: {
-        userId,
-        name: `Pay back ${who}`,
-        amount,
-        kind: 'debt',
-        dueDate: parseIsoDateUtc(dueDate),
-        oneTime: true,
-        personal: true,
-        lender: who,
-        payFrom: 'checking',
-      },
-    });
-  });
-  return c.json(await loadState(userId));
-});
 
 /** Start a planner goal, pausing wishes and financing on a card (catalog §2.2). */
 flowsRoutes.post('/planner/start', zValidator('json', plannerStartSchema), async (c) => {
