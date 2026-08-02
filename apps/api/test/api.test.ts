@@ -436,6 +436,71 @@ describe('planner', () => {
     expect(state.cards.find((c) => c.id === tight?.id)?.balance).toBe(1000);
     expect(state.goals.find((g) => g.name === 'Overreach')?.financed).toBe(600);
   });
+
+  it('records the financed principal once, on the card that funded it', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Single',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const single = withCard.cards.find((c) => c.name === 'Single');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: single?.id,
+      financed: 6000,
+    });
+
+    expect(state.cards.find((c) => c.id === single?.id)?.balance).toBe(6000);
+    // One debt, one obligation. There is no free-standing "<plan> financing"
+    // bill beside the card's own payment bill describing the same principal.
+    expect(state.bills.filter((b) => b.name.includes('financing'))).toEqual([]);
+    expect(state.bills.filter((b) => b.cardId === single?.id)).toHaveLength(1);
+  });
+
+  it('paying a financed plan reduces the balance on the card that funded it', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Repayable',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const repayable = withCard.cards.find((c) => c.name === 'Repayable');
+
+    const {state: locked} = await call('POST', '/planner/start', {
+      name: 'Boiler',
+      target: 6000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: repayable?.id,
+      financed: 6000,
+    });
+    const before = locked.cards.find((c) => c.id === repayable?.id);
+    const bill = locked.bills.find((b) => b.cardId === repayable?.id);
+    expect(bill).toBeDefined();
+    // The plan owns no bill of its own. Anything it put on the runway is the
+    // card's payment bill, so there is no debt bill whose payment clears
+    // nothing for want of a cardId.
+    expect(locked.bills.filter((b) => b.name.startsWith('Boiler'))).toEqual([]);
+    expect(locked.bills.filter((b) => b.kind === 'debt' && b.cardId == null)).toEqual([]);
+
+    const {state: after} = await call('POST', `/bills/${bill?.id}/pay`, {source: 'checking'});
+    // Every dollar of the installment lands on the principal, because the only
+    // bill describing the plan is the card's own — it carries a cardId.
+    expect(after.cards.find((c) => c.id === repayable?.id)?.balance).toBe(
+      (before?.balance ?? 0) - (bill?.amount ?? 0),
+    );
+  });
 });
 
 describe('plaid stubs', () => {

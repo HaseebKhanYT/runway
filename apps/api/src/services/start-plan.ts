@@ -28,21 +28,15 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
         financed = Math.min(headroom, Math.ceil(body.target), Math.ceil(body.financed));
         if (financed > 0) {
           financedFrom = card.name;
+          // Putting a plan on a card is a card purchase and nothing more: the
+          // balance rises, and syncCardBill — the single choke point — restates
+          // the one "{card} payment" bill that represents it. A second,
+          // free-standing financing bill would describe the same principal a
+          // second time, and the runway, which sums bills without knowing they
+          // are the same debt, would subtract it twice.
           await tx.card.update({
             where: {id: card.id},
             data: {balance: {increment: financed}, balanceUpdatedAt: new Date()},
-          });
-          const finDue = new Date(today);
-          finDue.setDate(finDue.getDate() + 10);
-          await tx.bill.create({
-            data: {
-              userId,
-              name: `${body.name} financing`,
-              amount: Math.ceil(financed / body.months),
-              kind: 'debt',
-              dueDate: finDue,
-              payFrom: 'checking',
-            },
           });
           await syncCardBill(tx, userId, card.id);
         }
