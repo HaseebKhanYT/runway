@@ -14,7 +14,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
   const [fading, setFading] = useState<Set<string>>(new Set());
   const fadeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const {nodes} = layoutTimeline(state.bills, vm.runway.DAYS, fading);
+  const {nodes} = layoutTimeline(state.bills, vm.runway.daysToPayday, fading);
 
   const onBillClick = (billId: string) => {
     const bill = state.bills.find((b) => b.id === billId);

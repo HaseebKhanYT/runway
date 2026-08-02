@@ -15,17 +15,17 @@ export interface TimelineNode {
  */
 export function layoutTimeline(
   bills: Bill[],
-  DAYS: number,
+  daysToPayday: number,
   fadingIds: ReadonlySet<string> = new Set(),
 ): {nodes: TimelineNode[]} {
   const future = bills
     .filter((b) => b.off >= 0 && (!b.paid || fadingIds.has(b.id)))
     .sort((a, b) => a.off - b.off);
-  const maxOff = Math.max(DAYS, ...future.map((b) => b.off), 1);
+  const maxOff = Math.max(daysToPayday, ...future.map((b) => b.off), 1);
 
   const unsorted: TimelineNode[] = [
     ...future.map((b): TimelineNode => ({id: b.id, off: b.off, pct: 0, side: 'above'})),
-    {id: 'payday', off: DAYS, pct: 0, side: 'below', payday: true},
+    {id: 'payday', off: daysToPayday, pct: 0, side: 'below', payday: true},
   ];
   const events = unsorted.sort((a, b) => a.off - b.off || (a.payday ? 1 : -1));
 

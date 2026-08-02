@@ -479,7 +479,7 @@ function PlannerCard({state}: {state: AppState}) {
         </div>
       )}
 
-      {showMath && kind === 'necessity' && plan.gap0 > 0 && (
+      {showMath && kind === 'necessity' && plan.initialGap > 0 && (
         <div
           style={{
             borderTop: '1px dashed var(--border-input)',

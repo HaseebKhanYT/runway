@@ -45,10 +45,18 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   const balance = pooledBalance(state);
   const cadence = state.profile.cadence;
 
-  const {safe, effDay, perDay, squeezed, overCommitted, DAYS, cycleSurplus} = runway;
+  const {
+    safe,
+    effectivePerDay,
+    thisCyclePerDay,
+    squeezed,
+    overCommitted,
+    daysToPayday,
+    cycleSurplus,
+  } = runway;
 
   const heroLabel = 'YOURS TO SPEND, EVERY DAY';
-  const heroNumber = formatDayAmount(effDay) + '/day';
+  const heroNumber = formatDayAmount(effectivePerDay) + '/day';
   const heroColor = safe < 0 || overCommitted ? '#e58c5b' : '#f6f0e6';
   let heroSub: string;
   if (safe < 0) {
@@ -56,13 +64,13 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   } else if (overCommitted) {
     heroSub = `your goals + bills need ${formatMoney(-cycleSurplus)} more than each paycheck brings in — stretch a goal timeline`;
   } else if (squeezed) {
-    heroSub = `a pace that still works after payday — this cycle alone would allow ${formatDayAmount(perDay)}/day`;
+    heroSub = `a pace that still works after payday — this cycle alone would allow ${formatDayAmount(thisCyclePerDay)}/day`;
   } else {
     heroSub = 'after bills & goals';
   }
 
   let perDaySub: string;
-  if (effDay >= 0) {
+  if (effectivePerDay >= 0) {
     perDaySub = 'a pace that lasts past payday';
   } else if (safe < 0) {
     perDaySub = `${formatMoney(-safe)} short before payday — trim a bill or stretch a goal`;
@@ -86,16 +94,16 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
       day: 'numeric',
     }),
     todayShort: formatShortDate(0, today),
-    daysToPay: DAYS,
+    daysToPay: daysToPayday,
     acctChipTag: extraCount === 0 ? '▾' : `· ${extraCount + 1}`,
     heroLabel,
     heroNumber,
     heroSub,
     heroColor,
-    perDayF: formatDayAmount(effDay),
+    perDayF: formatDayAmount(effectivePerDay),
     perDaySub,
-    perDayColor: effDay < 0 ? '#c2542a' : '#29221a',
-    paydayLabel: formatShortDate(DAYS, today),
+    perDayColor: effectivePerDay < 0 ? '#c2542a' : '#29221a',
+    paydayLabel: formatShortDate(daysToPayday, today),
     payAmountF: formatMoney(state.profile.payAmount),
     setAsideF: formatMoney(setAside),
     unpaidBillCount: state.bills.filter((b) => !b.paid).length,

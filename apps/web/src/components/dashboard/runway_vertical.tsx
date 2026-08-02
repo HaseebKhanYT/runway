@@ -10,7 +10,7 @@ import {useModals} from '../modals/modal_context';
 export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
   const {openModal} = useModals();
   const today = new Date();
-  const DAYS = vm.runway.DAYS;
+  const daysToPayday = vm.runway.daysToPayday;
 
   const events: {
     kind: 'bill' | 'payday';
@@ -20,7 +20,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
     ...state.bills
       .filter((b) => b.off >= 0)
       .map((b) => ({kind: 'bill' as const, id: b.id, off: b.off})),
-    {kind: 'payday' as const, id: 'payday', off: DAYS},
+    {kind: 'payday' as const, id: 'payday', off: daysToPayday},
   ].sort((a, b) => a.off - b.off || (a.kind === 'payday' ? 1 : -1));
 
   return (

@@ -115,7 +115,7 @@ export function CrunchPanel({state, vm}: {state: AppState; vm: ViewModel}) {
             color: 'var(--crunch-accent)',
           }}
         >
-          {formatMoney(crunch.short)} short
+          {formatMoney(crunch.shortfall)} short
         </div>
         <div style={{fontSize: 13.5, color: 'var(--on-dark-muted)'}}>
           {crunch.billLine} — there&apos;s still time to fix it.
@@ -144,7 +144,7 @@ export function CrunchPanel({state, vm}: {state: AppState; vm: ViewModel}) {
         ))}
         <Lever
           dashed
-          onPick={() => openModal('loan', {prefillAmount: Math.ceil(crunch.rem)})}
+          onPick={() => openModal('loan', {prefillAmount: Math.ceil(crunch.remainingShort)})}
           title="Borrow from someone you trust · 0%"
           sub="no interest — Runway tracks who and when you pay back"
         />

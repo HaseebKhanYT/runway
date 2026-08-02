@@ -26,16 +26,16 @@ export interface PlanLever {
 }
 
 export interface PlanSummary {
-  per: number;
+  perPaycheck: number;
   free: number;
   spare: number;
   sparePer: number;
   cap: number;
-  gap0: number;
+  initialGap: number;
   over: boolean;
   cushioned: boolean;
   freed: number;
-  remGap: number;
+  remainingGap: number;
   financed: number;
   interest: number;
   covered: boolean;
@@ -62,7 +62,7 @@ export function computePlan(
   const spare = Math.max(0, runway.safe);
   const sparePer = spare / (months * PAYCHECKS_PER_MONTH);
   const cap = free + sparePer;
-  const gap0 = per - cap;
+  const initialGap = per - cap;
   const over = per > cap;
   const cushioned = per > free && !over;
 
@@ -74,14 +74,14 @@ export function computePlan(
   const freed = pausableWishes
     .filter((g) => input.pausedIds.includes(g.id))
     .reduce((sum, g) => sum + goalPerPaycheck(g, cadence, today), 0);
-  const remGap = Math.max(0, gap0 - freed);
+  const remainingGap = Math.max(0, initialGap - freed);
 
   const card: Card | undefined = input.cardId
     ? state.cards.find((c) => c.id === input.cardId)
     : undefined;
   const financed = card
     ? Math.min(
-        Math.ceil(remGap * months * PAYCHECKS_PER_MONTH),
+        Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH),
         Math.floor(card.limit - card.balance),
         Math.ceil(input.target),
       )
@@ -90,13 +90,13 @@ export function computePlan(
   const interest = eff === 0 ? 0 : Math.ceil(((financed * eff) / 100) * (months / 24));
 
   const covered =
-    gap0 <= 0 ||
-    remGap <= 0 ||
-    (!!card && financed >= Math.ceil(remGap * months * PAYCHECKS_PER_MONTH) - 1) ||
+    initialGap <= 0 ||
+    remainingGap <= 0 ||
+    (!!card && financed >= Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH) - 1) ||
     input.earn;
 
   const isNecessity = input.kind === 'necessity';
-  const perLine = buildPerLine(input.kind, per, free, spare, over, cushioned, gap0);
+  const perLine = buildPerLine(input.kind, per, free, spare, over, cushioned, initialGap);
   const perColor = isNecessity
     ? over && !covered
       ? '#c2410c'
@@ -106,7 +106,7 @@ export function computePlan(
       : '#8b6fd8';
 
   const levers: PlanLever[] = [];
-  if (isNecessity && gap0 > 0) {
+  if (isNecessity && initialGap > 0) {
     for (const g of pausableWishes) {
       levers.push({
         kind: 'pause',
@@ -129,7 +129,7 @@ export function computePlan(
           })
         : null;
       const cardFin = Math.min(
-        Math.ceil(remGap * months * PAYCHECKS_PER_MONTH),
+        Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH),
         Math.floor(c.limit - c.balance),
         Math.ceil(input.target),
       );
@@ -153,7 +153,7 @@ export function computePlan(
         sub: 'Cards tab — APR, limit, balance off the statement',
       });
     }
-    const earnMonthly = Math.ceil((remGap * PAYCHECKS_PER_MONTH) / 10) * 10;
+    const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
     levers.push({
       kind: 'earn',
       id: 'earn',
@@ -167,23 +167,23 @@ export function computePlan(
   if (financed > 0) parts.push(`${formatMoney(financed)} on ${card?.name ?? ''}`);
   const gapLine = covered
     ? `Covered ✓${parts.length ? ' · ' + parts.join(' · ') : ''}`
-    : `Still short ${formatMoney(remGap)} per paycheck — pick another lever`;
+    : `Still short ${formatMoney(remainingGap)} per paycheck — pick another lever`;
 
-  const ctaLabel = isNecessity && gap0 > 0 ? 'Lock this plan in' : 'Start this plan';
+  const ctaLabel = isNecessity && initialGap > 0 ? 'Lock this plan in' : 'Start this plan';
   const ctaEnabled =
     input.name.trim().length > 0 && input.target > 0 && (isNecessity ? covered : !over);
 
   return {
-    per,
+    perPaycheck: per,
     free,
     spare,
     sparePer,
     cap,
-    gap0,
+    initialGap,
     over,
     cushioned,
     freed,
-    remGap,
+    remainingGap,
     financed,
     interest,
     covered,
@@ -207,7 +207,7 @@ function buildPerLine(
   spare: number,
   over: boolean,
   cushioned: boolean,
-  gap0: number,
+  initialGap: number,
 ): string {
   const perF = `$${Math.round(per)}`;
   const freeF = `$${Math.round(free)}`;
@@ -227,5 +227,5 @@ function buildPerLine(
   if (!over) {
     return `That's ${perF} per paycheck — it fits without denting your daily number.`;
   }
-  return `${perF} per paycheck needed — $${Math.round(gap0)} more than your cycles + ${spareF} spare balance can free up. Find it below ↓`;
+  return `${perF} per paycheck needed — $${Math.round(initialGap)} more than your cycles + ${spareF} spare balance can free up. Find it below ↓`;
 }

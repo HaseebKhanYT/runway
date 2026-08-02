@@ -14,7 +14,7 @@ describe('buildViewModel', () => {
   it('renders squeezed hero for the demo seed', () => {
     const vm = buildViewModel(demoData(TODAY), TODAY);
     // preBills: rent 950 + electric 74 + phone 45 + carda 160 + netflix 15.49 + gym 40 = 1284.49
-    expect(vm.runway.preBillsSum).toBeCloseTo(1284.49);
+    expect(vm.runway.billsDueBeforePayday).toBeCloseTo(1284.49);
     // setAside: japan per (due 2027-04-01, 259 days, 18 checks -> ceil(1540/18)=86) + efund 40
     expect(vm.runway.setAside).toBe(126);
     expect(vm.runway.safe).toBeCloseTo(4589.51);

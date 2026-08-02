@@ -33,13 +33,13 @@ export interface CrunchSelection {
 
 export interface CrunchSummary {
   on: boolean;
-  short: number;
+  shortfall: number;
   /** Which bill breaks the balance, or the set-asides line. */
   billLine: string;
   goalLevers: CrunchGoalLever[];
   cardLevers: CrunchCardLever[];
   freed: number;
-  rem: number;
+  remainingShort: number;
   advance: number;
   covered: boolean;
   gapLine: string;
@@ -49,7 +49,7 @@ export interface CrunchSummary {
 function breakingBill(state: AppState, runway: RunwaySummary, today: Date): Bill | null {
   let run = pooledBalance(state);
   const preBills = state.bills
-    .filter((b) => !b.paid && b.off < runway.DAYS)
+    .filter((b) => !b.paid && b.off < runway.daysToPayday)
     .sort((a, b) => a.off - b.off);
   for (const b of preBills) {
     run -= b.amount;
@@ -135,12 +135,12 @@ export function computeCrunch(
 
   return {
     on,
-    short,
+    shortfall: short,
     billLine,
     goalLevers,
     cardLevers,
     freed,
-    rem,
+    remainingShort: rem,
     advance,
     covered,
     gapLine,
