@@ -2,9 +2,10 @@ import {zValidator} from '@hono/zod-validator';
 import type {Prisma} from '@prisma/client';
 import {cardLogPaymentSchema, cardUpsertSchema, suggestRewards} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
-import {syncCardBill} from '../card_bill_sync';
-import {loadState} from '../state';
+import {prisma} from '../lib/db';
+import {syncCardBill} from '../services/card-bill-sync';
+import {loadState} from '../services/app-state';
+import {logCardPayment} from '../services/log-card-payment';
 
 export const cardsRoutes = new Hono();
 
@@ -70,43 +71,7 @@ cardsRoutes.delete('/cards/:id', async (c) => {
 
 cardsRoutes.post('/cards/:id/log-payment', zValidator('json', cardLogPaymentSchema), async (c) => {
   const userId = c.get('userId');
-  const id = c.req.param('id');
   const {amount, source} = c.req.valid('json');
-  await prisma.$transaction(async (tx) => {
-    const card = await tx.card.findFirst({where: {id, userId}});
-    if (!card) return;
-    await tx.card.update({
-      where: {id},
-      data: {balance: {decrement: amount}, balanceUpdatedAt: new Date()},
-    });
-    let src = 'Main checking';
-    if (source !== 'checking') {
-      const account = await tx.account.findFirst({where: {id: source, userId}});
-      if (account) {
-        await tx.account.update({
-          where: {id: account.id},
-          data: {balance: {decrement: amount}},
-        });
-        src = account.name;
-      }
-    } else {
-      await tx.profile.update({
-        where: {userId},
-        data: {primaryBalance: {decrement: amount}},
-      });
-    }
-    await tx.txn.create({
-      data: {
-        userId,
-        label: `${card.name} payment`,
-        amount: -amount,
-        cat: 'Debt',
-        postedAt: new Date(),
-        src,
-        cardId: card.id,
-      },
-    });
-    await syncCardBill(tx, userId, id);
-  });
+  await logCardPayment(userId, c.req.param('id'), amount, source);
   return c.json(await loadState(userId));
 });

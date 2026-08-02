@@ -1,9 +1,10 @@
 import {zValidator} from '@hono/zod-validator';
-import {billCreateSchema, billPatchSchema} from '@runway/shared';
+import {billCreateSchema, billPatchSchema, payBillSchema} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
-import {nextDueDate} from '../dates';
-import {loadState} from '../state';
+import {prisma} from '../lib/db';
+import {nextDueDate} from '../lib/dates';
+import {loadState} from '../services/app-state';
+import {payBill, unpayBill} from '../services/pay-bill';
 
 export const billsRoutes = new Hono();
 
@@ -40,5 +41,18 @@ billsRoutes.patch('/bills/:id', zValidator('json', billPatchSchema), async (c) =
 billsRoutes.delete('/bills/:id', async (c) => {
   const userId = c.get('userId');
   await prisma.bill.deleteMany({where: {id: c.req.param('id'), userId}});
+  return c.json(await loadState(userId));
+});
+
+billsRoutes.post('/bills/:id/pay', zValidator('json', payBillSchema), async (c) => {
+  const userId = c.get('userId');
+  const {source} = c.req.valid('json');
+  await payBill(userId, c.req.param('id'), source);
+  return c.json(await loadState(userId));
+});
+
+billsRoutes.post('/bills/:id/unpay', async (c) => {
+  const userId = c.get('userId');
+  await unpayBill(userId, c.req.param('id'));
   return c.json(await loadState(userId));
 });

@@ -1,9 +1,10 @@
 import {zValidator} from '@hono/zod-validator';
-import {goalCreateSchema, goalPatchSchema} from '@runway/shared';
+import {goalCreateSchema, goalPatchSchema, setAsideSchema} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
-import {parseIsoDateUtc} from '../dates';
-import {loadState} from '../state';
+import {prisma} from '../lib/db';
+import {parseIsoDateUtc} from '../lib/dates';
+import {loadState} from '../services/app-state';
+import {setAsideForGoal} from '../services/set-aside';
 
 export const goalsRoutes = new Hono();
 
@@ -53,5 +54,12 @@ goalsRoutes.delete('/goals/:id', async (c) => {
     }
     await tx.goal.delete({where: {id: goal.id}});
   });
+  return c.json(await loadState(userId));
+});
+
+goalsRoutes.post('/goals/:id/set-aside', zValidator('json', setAsideSchema), async (c) => {
+  const userId = c.get('userId');
+  const {amount, source} = c.req.valid('json');
+  await setAsideForGoal(userId, c.req.param('id'), amount, source);
   return c.json(await loadState(userId));
 });

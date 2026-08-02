@@ -1,4 +1,4 @@
-import type {PrismaTx} from './db';
+import type {PrismaTx} from '../lib/db';
 
 export interface ResolvedSource {
   kind: 'checking' | 'account' | 'card';

@@ -1,5 +1,5 @@
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
-import {advanceCycle, nextDueDate, parseIsoDateUtc} from '../../src/dates';
+import {advanceCycle, nextDueDate, parseIsoDateUtc} from '../../src/lib/dates';
 
 const iso = (d: Date): string => d.toISOString().slice(0, 10);
 
