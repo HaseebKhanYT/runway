@@ -2,7 +2,7 @@ import {zValidator} from '@hono/zod-validator';
 import type {Prisma} from '@prisma/client';
 import {cardLogPaymentSchema, cardUpsertSchema, suggestRewards} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
+import {prisma} from '../lib/db';
 import {syncCardBill} from '../card_bill_sync';
 import {loadState} from '../state';
 

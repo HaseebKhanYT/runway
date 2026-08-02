@@ -1,6 +1,6 @@
 import {minPaymentGuess} from '@runway/shared';
-import type {PrismaTx} from './db';
-import {nextDueDate} from './dates';
+import type {PrismaTx} from './lib/db';
+import {nextDueDate} from './lib/dates';
 
 /**
  * The single choke point (catalog §2.2): keeps each card's "{card} payment"

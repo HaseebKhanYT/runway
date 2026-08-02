@@ -1,8 +1,8 @@
 import {zValidator} from '@hono/zod-validator';
 import {billCreateSchema, billPatchSchema} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
-import {nextDueDate} from '../dates';
+import {prisma} from '../lib/db';
+import {nextDueDate} from '../lib/dates';
 import {loadState} from '../state';
 
 export const billsRoutes = new Hono();

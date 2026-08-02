@@ -2,8 +2,8 @@ import {zValidator} from '@hono/zod-validator';
 import type {Prisma} from '@prisma/client';
 import {CAT_PALETTE, demoData, onboardingCompleteSchema} from '@runway/shared';
 import {Hono} from 'hono';
-import {prisma} from '../db';
-import {nextDueDate, parseIsoDateUtc} from '../dates';
+import {prisma} from '../lib/db';
+import {nextDueDate, parseIsoDateUtc} from '../lib/dates';
 import {loadState} from '../state';
 
 export const onboardingRoutes = new Hono();

@@ -1,6 +1,6 @@
 import type {AppState} from '@runway/shared';
-import type {PrismaTx} from './db';
-import {prisma} from './db';
+import type {PrismaTx} from './lib/db';
+import {prisma} from './lib/db';
 import {serializeState} from './serialize';
 
 export async function ensureUser(userId: string): Promise<void> {
