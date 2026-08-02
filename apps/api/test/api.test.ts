@@ -350,6 +350,38 @@ describe('onboarding', () => {
   });
 });
 
+describe('planner', () => {
+  it('a card over its limit finances nothing and funds no goal', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Maxed',
+      apr: 22,
+      limit: 1000,
+      balance: 1500,
+      dueDay: 12,
+    });
+    const maxed = withCard.cards.find((c) => c.name === 'Maxed');
+    expect(maxed?.balance).toBe(1500);
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Roof repair',
+      target: 3000,
+      months: 6,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: maxed?.id,
+    });
+
+    const goal = state.goals.find((g) => g.name === 'Roof repair');
+    // Headroom is -500. Clamped to 0, so nothing is financed and no card is
+    // credited with funding the goal.
+    expect(goal?.financed).toBe(0);
+    expect(goal?.saved).toBe(0);
+    expect(goal?.financedFrom).toBeNull();
+    expect(state.cards.find((c) => c.id === maxed?.id)?.balance).toBe(1500);
+  });
+});
+
 describe('plaid stubs', () => {
   it('reserved endpoints return 501', async () => {
     const res = await app.request('/plaid/link-token', {

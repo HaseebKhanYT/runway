@@ -20,10 +20,12 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
     if (body.cardId) {
       const card = await tx.card.findFirst({where: {id: body.cardId, userId}});
       if (card) {
-        const headroom = Math.floor(Number(card.limit) - Number(card.balance));
+        // A card over its limit has no headroom to lend, not negative headroom:
+        // an unclamped difference used to reach the goal as a negative `saved`.
+        const headroom = Math.max(0, Math.floor(Number(card.limit) - Number(card.balance)));
         financed = Math.min(headroom, Math.ceil(body.target));
-        financedFrom = card.name;
         if (financed > 0) {
+          financedFrom = card.name;
           await tx.card.update({
             where: {id: card.id},
             data: {balance: {increment: financed}, balanceUpdatedAt: new Date()},
