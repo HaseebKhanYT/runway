@@ -1,0 +1,31 @@
+{
+  "goal": {
+    "id": "cmsbyd699000wtvryjhjnpdd9",
+    "name": "Visa fees",
+    "target": 15000,
+    "saved": 2260,
+    "per": 2500,
+    "note": "Nov 2026",
+    "due": "2026-11-01",
+    "necessity": true,
+    "paused": null,
+    "behind": false,
+    "financed": 2260,
+    "financedFrom": "Card A"
+  },
+  "finBill": {
+    "id": "cmsbyd683000vtvry1hrwvzo1",
+    "name": "Visa fees financing",
+    "amount": 754,
+    "kind": "debt",
+    "dueDate": "2026-08-13",
+    "off": 11,
+    "cycle": "monthly",
+    "paid": false,
+    "payFrom": "checking",
+    "cardId": null,
+    "oneTime": false,
+    "personal": false,
+    "lender": null
+  }
+}

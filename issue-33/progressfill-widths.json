@@ -1,0 +1,10 @@
+[
+  {
+    "inline": "background: var(--financed);",
+    "computed": "0px"
+  },
+  {
+    "inline": "background: var(--goals);",
+    "computed": "0px"
+  }
+]

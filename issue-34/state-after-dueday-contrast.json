@@ -1,0 +1,34 @@
+{
+  "bills": [
+    {
+      "id": "cmsbyk08k004dtvrykyu5idjz",
+      "name": "Rent",
+      "amount": 950,
+      "kind": "survival",
+      "dueDate": "2026-08-05",
+      "off": 3,
+      "cycle": "monthly",
+      "paid": false,
+      "payFrom": null,
+      "cardId": null,
+      "oneTime": false,
+      "personal": false,
+      "lender": null
+    },
+    {
+      "id": "cmsbyk4d5004itvryd7gz1kby",
+      "name": "Sapphire payment",
+      "amount": 90,
+      "kind": "debt",
+      "dueDate": "2026-08-10",
+      "off": 8,
+      "cycle": "monthly",
+      "paid": false,
+      "payFrom": "checking",
+      "cardId": "cmsbyk08l004etvryitfok9xq",
+      "oneTime": false,
+      "personal": false,
+      "lender": null
+    }
+  ]
+}

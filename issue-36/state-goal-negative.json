@@ -1,0 +1,31 @@
+{
+  "goal": {
+    "id": "cmsbyq2nu0085tvry9jf2gifw",
+    "name": "Transmission fix",
+    "target": 1000,
+    "saved": -500,
+    "per": 250,
+    "note": "Oct 2026",
+    "due": "2026-10-01",
+    "necessity": true,
+    "paused": null,
+    "behind": false,
+    "financed": -500,
+    "financedFrom": "Maxed card"
+  },
+  "card": {
+    "id": "cmsbyq11u0084tvryvpt7mh75",
+    "name": "Maxed card",
+    "apr": 24,
+    "limit": 1000,
+    "balance": 1500,
+    "dueDay": null,
+    "minPay": null,
+    "payInFull": false,
+    "rewards": [],
+    "promoRate": null,
+    "promoEnd": null,
+    "balanceUpdatedAt": "2026-08-02T15:36:04.818Z"
+  },
+  "financingBill": null
+}

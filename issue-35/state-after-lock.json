@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Car repair",
+    "per": 4000,
+    "saved": 0,
+    "paused": null
+  },
+  {
+    "name": "Emergency fund",
+    "per": 40,
+    "saved": 400,
+    "paused": "Car repair"
+  },
+  {
+    "name": "Japan trip",
+    "per": 85,
+    "saved": 860,
+    "paused": "Car repair"
+  }
+]

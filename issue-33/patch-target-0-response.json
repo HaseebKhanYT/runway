@@ -1,0 +1,22 @@
+{
+  "status": 400,
+  "body": {
+    "success": false,
+    "error": {
+      "issues": [
+        {
+          "code": "too_small",
+          "minimum": 0,
+          "type": "number",
+          "inclusive": false,
+          "exact": false,
+          "message": "Number must be greater than 0",
+          "path": [
+            "target"
+          ]
+        }
+      ],
+      "name": "ZodError"
+    }
+  }
+}

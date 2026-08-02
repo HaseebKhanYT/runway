@@ -1,0 +1,49 @@
+{
+  "profile": {
+    "name": "Jordan Rivera",
+    "email": "jordan.rivera+clerk_test@runway-smoke.com",
+    "cadence": "biweekly",
+    "nextPay": "2026-08-16",
+    "payAmount": 1700,
+    "primaryName": "Main checking",
+    "primaryBalance": 6000,
+    "primaryLogo": null,
+    "notifBills": true,
+    "notifWeekly": false,
+    "onboarded": true
+  },
+  "cards": [
+    {
+      "id": "cmsbyk08l004etvryitfok9xq",
+      "name": "Sapphire",
+      "apr": 24.99,
+      "limit": 5000,
+      "balance": 3000,
+      "dueDay": null,
+      "minPay": null,
+      "payInFull": false,
+      "rewards": [],
+      "promoRate": null,
+      "promoEnd": null,
+      "balanceUpdatedAt": "2026-08-02T15:31:23.829Z"
+    }
+  ],
+  "bills": [
+    {
+      "id": "cmsbyk08k004dtvrykyu5idjz",
+      "name": "Rent",
+      "amount": 950,
+      "kind": "survival",
+      "dueDate": "2026-08-05",
+      "off": 3,
+      "cycle": "monthly",
+      "paid": false,
+      "payFrom": null,
+      "cardId": null,
+      "oneTime": false,
+      "personal": false,
+      "lender": null
+    }
+  ],
+  "goals": []
+}
