@@ -24,11 +24,14 @@ jobs:
   verify:
     name: verify
     runs-on: ubuntu-latest
-    env:
-      # prisma generate validates the datasource URL, so it has to parse. No
-      # database is contacted in this job.
-      DATABASE_URL: postgresql://runway:runway@localhost:5432/runway
-      TZ: UTC
+    # Both jobs are required checks, so a hung step blocks the pull request for
+    # the six-hour default. The job finishes in under a minute.
+    timeout-minutes: 10
+    # No DATABASE_URL, deliberately. `prisma generate` resolves
+    # `env("DATABASE_URL")` lazily and never connects, so nothing here needs
+    # one — which is what lets a pull request be verified without a database.
+    # Nor TZ: turbo runs tasks in strict env mode, so anything exported here is
+    # filtered out before vitest sees it. The vitest configs pin the zone.
     steps:
       - uses: actions/checkout@v4
 
@@ -64,9 +67,11 @@ jobs:
   integration:
     name: integration
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
+      # Read by the Migrate step directly, and declared on
+      # @runway/api#test:integration in turbo.json so it survives strict mode.
       DATABASE_URL: postgresql://runway:runway@localhost:5432/runway
-      TZ: UTC
     services:
       postgres:
         image: postgres:16-alpine
@@ -76,8 +81,13 @@ jobs:
           POSTGRES_DB: runway
         ports:
           - 5432:5432
+        # pg_isready answers for the temporary server initdb runs before the
+        # real one accepts TCP, so a first-boot probe can pass against a server
+        # the job cannot reach. The start period holds the checks off until
+        # entrypoint setup is done.
         options: >-
           --health-cmd pg_isready
+          --health-start-period 10s
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

@@ -43,6 +43,15 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+describe('test environment', () => {
+  it('runs under UTC', () => {
+    // Tripwire, matching test/unit/dates.test.ts. Bill and cycle dates are
+    // written from local date parts, so a zone other than UTC changes what
+    // these expectations mean; vitest.integration.config.ts pins TZ=UTC.
+    expect(new Date().getTimezoneOffset()).toBe(0);
+  });
+});
+
 describe('auth', () => {
   it('rejects without credentials', async () => {
     const res = await app.request('/me/state');
