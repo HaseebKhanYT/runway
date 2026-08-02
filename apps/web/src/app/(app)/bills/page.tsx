@@ -1,7 +1,7 @@
 'use client';
 
 import {type AppState, type Bill, type BillKind} from '@runway/shared';
-import {d, fm, ordSuf} from '../../../lib/format';
+import {formatShortDate, formatMoney, ordinalSuffix} from '../../../lib/format';
 import {useState, type DragEvent, type TouchEvent} from 'react';
 import {useModals} from '../../../components/modals/modal_context';
 import ui from '../../../components/ui/ui.module.css';
@@ -222,11 +222,11 @@ function BillRow({
             )}
           </div>
           <div style={{fontSize: 12, color: 'var(--muted)'}}>
-            {bill.paid ? 'paid ✓' : `due ${d(bill.off, today)}`}
+            {bill.paid ? 'paid ✓' : `due ${formatShortDate(bill.off, today)}`}
           </div>
         </div>
         <span className="tnum" style={{fontSize: 15, fontWeight: 650}}>
-          {fm(bill.amount)}
+          {formatMoney(bill.amount)}
         </span>
         {!isMobile && (
           <button
@@ -335,7 +335,7 @@ export default function BillsPage() {
         >
           <div style={{fontSize: 15, fontWeight: 700}}>This month</div>
           <div className="tnum" style={{fontSize: 13, color: 'var(--muted)'}}>
-            {fm(left)} left of {fm(total)}
+            {formatMoney(left)} left of {formatMoney(total)}
           </div>
         </div>
         <div className={ui.progressTrack} style={{height: 10, borderRadius: 6}}>
@@ -395,7 +395,7 @@ export default function BillsPage() {
                 {group.title}
               </span>
               <span className="tnum" style={{fontSize: 11.5, color: 'var(--muted)'}}>
-                {fm(sum)} / month
+                {formatMoney(sum)} / month
               </span>
             </div>
             <div
@@ -503,7 +503,8 @@ export default function BillsPage() {
                       }}
                     />
                     <span style={{fontSize: 12.5, color: 'var(--muted)'}}>
-                      {form.dueRaw ? ordSuf(parseInt(form.dueRaw, 10) || 1) : ''} of the month
+                      {form.dueRaw ? ordinalSuffix(parseInt(form.dueRaw, 10) || 1) : ''} of the
+                      month
                     </span>
                     {group.kind === 'subscription' && (
                       <span className={ui.segWrap} style={{marginLeft: 'auto'}}>

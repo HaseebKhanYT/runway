@@ -1,7 +1,7 @@
 'use client';
 
 import {type AppState, type Txn} from '@runway/shared';
-import {d, fm} from '../../../lib/format';
+import {formatShortDate, formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {ActivityRow} from '../../../components/activity/activity_row';
 import ui from '../../../components/ui/ui.module.css';
@@ -28,7 +28,7 @@ function matchesFilter(t: Txn, filter: Filter, state: AppState): boolean {
 function dayLabel(off: number, today: Date): string {
   if (off === 0) return 'TODAY';
   if (off === -1) return 'YESTERDAY';
-  return d(off, today).toUpperCase();
+  return formatShortDate(off, today).toUpperCase();
 }
 
 export default function ActivityPage() {
@@ -88,9 +88,14 @@ export default function ActivityPage() {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
       <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
-        {stat('MONEY IN', `+${fm(txIn)}`, 'var(--success)', 'last 14 days')}
-        {stat('MONEY OUT', `−${fm(txOut).replace('−', '')}`, 'var(--ink)', 'last 14 days')}
-        {stat('NET', fm(net), net >= 0 ? 'var(--success)' : 'var(--danger)', 'this period')}
+        {stat('MONEY IN', `+${formatMoney(txIn)}`, 'var(--success)', 'last 14 days')}
+        {stat('MONEY OUT', `−${formatMoney(txOut).replace('−', '')}`, 'var(--ink)', 'last 14 days')}
+        {stat(
+          'NET',
+          formatMoney(net),
+          net >= 0 ? 'var(--success)' : 'var(--danger)',
+          'this period',
+        )}
       </div>
 
       <div style={{display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center'}}>
@@ -178,7 +183,7 @@ export default function ActivityPage() {
                       color: dayNet > 0 ? 'var(--success)' : 'var(--muted)',
                     }}
                   >
-                    {dayNet > 0 ? `+${fm(dayNet)}` : fm(dayNet)}
+                    {dayNet > 0 ? `+${formatMoney(dayNet)}` : formatMoney(dayNet)}
                   </span>
                 </div>
                 {group.txns.map((t, i) => (
@@ -273,7 +278,7 @@ export default function ActivityPage() {
                       {t.label}
                     </span>
                     <span style={{display: 'block', fontSize: 11.5, color: 'var(--muted-2)'}}>
-                      {t.cat} · {fm(t.amount)}
+                      {t.cat} · {formatMoney(t.amount)}
                     </span>
                   </span>
                   <button

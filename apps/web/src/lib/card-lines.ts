@@ -1,5 +1,5 @@
 import {daysUntil, payoffProjection, type Bill, type Card} from '@runway/shared';
-import {fm} from './format';
+import {formatMoney} from './format';
 
 /** Reward-pill palette by category keyword (catalog §4.1). */
 export function rewardPillColors(cat: string): {bg: string; fg: string} {
@@ -24,14 +24,14 @@ export function cardLine(
   today: Date,
 ): {text: string; color: string} {
   if (c.balance <= 0) {
-    return {text: `Paid off — ${fm(c.limit)} available`, color: '#2e7d4f'};
+    return {text: `Paid off — ${formatMoney(c.limit)} available`, color: '#2e7d4f'};
   }
   if (c.payInFull) {
     if (paymentBill) {
       const due = new Date(paymentBill.dueDate + 'T00:00:00');
       const dueLabel = due.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
       return {
-        text: `Pays in full ${dueLabel} — ${fm(c.balance)}, $0 interest`,
+        text: `Pays in full ${dueLabel} — ${formatMoney(c.balance)}, $0 interest`,
         color: '#2e7d4f',
       };
     }
@@ -45,7 +45,7 @@ export function cardLine(
     const months = Math.max(1, Math.round(daysLeft / 30));
     const end = new Date(c.promoEnd + 'T00:00:00');
     return {
-      text: `⏳ ${c.promoRate}% ends ${monthYear(end)} (${months} mo) — clear ${fm(c.balance)} by then or it costs ${c.apr}%`,
+      text: `⏳ ${c.promoRate}% ends ${monthYear(end)} (${months} mo) — clear ${formatMoney(c.balance)} by then or it costs ${c.apr}%`,
       color: daysLeft < 90 ? '#c2410c' : '#5c5142',
     };
   }
@@ -53,19 +53,19 @@ export function cardLine(
     const projection = payoffProjection(c, paymentBill.amount);
     if (!projection) {
       return {
-        text: `${fm(paymentBill.amount)}/mo doesn't cover the interest — raise the payment`,
+        text: `${formatMoney(paymentBill.amount)}/mo doesn't cover the interest — raise the payment`,
         color: '#c2410c',
       };
     }
     const clearDate = new Date(today.getFullYear(), today.getMonth() + projection.months, 1);
     return {
-      text: `At ${fm(paymentBill.amount)}/mo → clear by ${monthYear(clearDate)} · ≈${fm(projection.interest)} interest on the way`,
+      text: `At ${formatMoney(paymentBill.amount)}/mo → clear by ${monthYear(clearDate)} · ≈${formatMoney(projection.interest)} interest on the way`,
       color: '#5c5142',
     };
   }
   const monthlyInterest = Math.max(1, Math.round((c.balance * c.apr) / 1200));
   return {
-    text: `No due date set — Edit to add one · interest ≈ ${fm(monthlyInterest)}/mo at ${c.apr}%`,
+    text: `No due date set — Edit to add one · interest ≈ ${formatMoney(monthlyInterest)}/mo at ${c.apr}%`,
     color: '#5c5142',
   };
 }

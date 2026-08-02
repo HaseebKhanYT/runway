@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {computeRunway} from '../src/safe_per_day';
+import {computeRunway} from '../src/runway';
 import type {AppState, Bill} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');
@@ -78,15 +78,15 @@ describe('computeRunway', () => {
       ],
     });
     const r = computeRunway(state, TODAY);
-    expect(r.CYCLE).toBe(14);
-    expect(r.DAYS).toBe(10);
-    expect(r.preBillsSum).toBe(100);
+    expect(r.cycleLength).toBe(14);
+    expect(r.daysToPayday).toBe(10);
+    expect(r.billsDueBeforePayday).toBe(100);
     expect(r.setAside).toBe(40);
     expect(r.safe).toBe(860);
-    expect(r.perDay).toBe(86);
+    expect(r.thisCyclePerDay).toBe(86);
     // billsMonthly 600 -> perCycle 600*14/30.44 = 275.95; surplus 1384.05 -> floor(/14)=98
-    expect(r.sustainDay).toBe(98);
-    expect(r.effDay).toBe(86);
+    expect(r.sustainablePerDay).toBe(98);
+    expect(r.effectivePerDay).toBe(86);
     expect(r.squeezed).toBe(false);
     expect(r.overCommitted).toBe(false);
   });
@@ -100,7 +100,7 @@ describe('computeRunway', () => {
       ],
     });
     const r = computeRunway(state, TODAY);
-    expect(r.preBillsSum).toBe(0);
+    expect(r.billsDueBeforePayday).toBe(0);
     expect(r.safe).toBe(1000);
   });
 
@@ -110,9 +110,9 @@ describe('computeRunway', () => {
       bills: [makeBill({amount: 100, off: 2})],
     });
     const r = computeRunway(state, TODAY);
-    expect(r.DAYS).toBe(14); // no nextPay -> full cycle
+    expect(r.daysToPayday).toBe(14); // no nextPay -> full cycle
     expect(r.safe).toBe(-50);
-    expect(r.perDay).toBe(-4); // -ceil(50/14)
+    expect(r.thisCyclePerDay).toBe(-4); // -ceil(50/14)
   });
 
   it('yearly subscriptions count as amount/12; one-time and personal excluded', () => {
@@ -125,10 +125,10 @@ describe('computeRunway', () => {
     });
     const r = computeRunway(state, TODAY);
     // billsMonthly = 10 -> perCycle 10*14/30.44 = 4.599; surplus 1695.4 -> 121
-    expect(r.sustainDay).toBe(121);
+    expect(r.sustainablePerDay).toBe(121);
   });
 
-  it('clamps DAYS into [1, CYCLE] and flags squeezed/overcommitted', () => {
+  it('clamps daysToPayday into [1, cycleLength] and flags squeezed/overcommitted', () => {
     const squeezedState = makeState({
       profile: {
         ...makeState({}).profile,
@@ -139,10 +139,10 @@ describe('computeRunway', () => {
       bills: [makeBill({amount: 400, off: 2})],
     });
     const r = computeRunway(squeezedState, TODAY);
-    expect(r.DAYS).toBe(14);
-    // perDay floor(9600/14)=685; billsMonthly 400 -> perCycle 183.97; surplus 316.03 -> 22
-    expect(r.sustainDay).toBe(22);
-    expect(r.effDay).toBe(22);
+    expect(r.daysToPayday).toBe(14);
+    // thisCyclePerDay floor(9600/14)=685; billsMonthly 400 -> perCycle 183.97; surplus 316.03 -> 22
+    expect(r.sustainablePerDay).toBe(22);
+    expect(r.effectivePerDay).toBe(22);
     expect(r.squeezed).toBe(true);
 
     const overState = makeState({
@@ -150,9 +150,9 @@ describe('computeRunway', () => {
       bills: [makeBill({amount: 400, off: 2, paid: true})],
     });
     const o = computeRunway(overState, TODAY);
-    // surplus = 100 - 183.97 = -83.97 -> sustainDay -ceil(83.97/14) = -6
+    // surplus = 100 - 183.97 = -83.97 -> sustainablePerDay -ceil(83.97/14) = -6
     expect(o.overCommitted).toBe(true);
-    expect(o.sustainDay).toBe(-6);
+    expect(o.sustainablePerDay).toBe(-6);
   });
 
   it('paused and funded goals do not set aside', () => {

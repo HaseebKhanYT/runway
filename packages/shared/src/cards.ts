@@ -2,7 +2,7 @@ import {daysUntil} from './cycles';
 import type {Card, CardReward} from './types';
 
 /** Effective APR — promo rate while the promo is still live (catalog §3.7). */
-export function effApr(c: Card, today: Date): number {
+export function effectiveApr(c: Card, today: Date): number {
   if (c.promoRate != null && c.promoEnd && daysUntil(c.promoEnd, today) > 0) {
     return c.promoRate;
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import {pooledBalance, type AccountType, type AppState} from '@runway/shared';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
@@ -151,7 +151,7 @@ export function AccountsModal({state}: {state: AppState}) {
             TOTAL BALANCE
           </span>
           <span className="tnum" style={{fontSize: 24, fontWeight: 700, letterSpacing: '-.5px'}}>
-            {fm(pooledBalance(state))}
+            {formatMoney(pooledBalance(state))}
           </span>
         </div>
 
@@ -174,7 +174,7 @@ export function AccountsModal({state}: {state: AppState}) {
               <div style={{fontSize: 11.5, color: 'var(--muted)'}}>{TYPE_META[row.type].label}</div>
             </div>
             <div className="tnum" style={{fontSize: 15, fontWeight: 700}}>
-              {fm(row.balance)}
+              {formatMoney(row.balance)}
             </div>
             <button
               className={ui.iconBtn}

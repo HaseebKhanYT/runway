@@ -2,7 +2,7 @@
 
 import {type AppState} from '@runway/shared';
 import {useState} from 'react';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useFlow} from '../../lib/queries';
 import {buildViewModel} from '../../lib/view-model';
 import ui from '../ui/ui.module.css';
@@ -39,7 +39,7 @@ export function PaydayModal({state}: {state: AppState}) {
             onClick={() => run(state.profile.payAmount)}
             disabled={confirm.isPending}
           >
-            Yes — {fm(state.profile.payAmount)} landed
+            Yes — {formatMoney(state.profile.payAmount)} landed
           </button>
           <button
             style={{

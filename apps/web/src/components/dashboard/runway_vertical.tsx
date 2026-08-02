@@ -1,7 +1,7 @@
 'use client';
 
 import {type AppState} from '@runway/shared';
-import {d, fm} from '../../lib/format';
+import {formatShortDate, formatMoney} from '../../lib/format';
 import {spineGap} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal_context';
@@ -10,7 +10,7 @@ import {useModals} from '../modals/modal_context';
 export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
   const {openModal} = useModals();
   const today = new Date();
-  const DAYS = vm.runway.DAYS;
+  const daysToPayday = vm.runway.daysToPayday;
 
   const events: {
     kind: 'bill' | 'payday';
@@ -20,7 +20,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
     ...state.bills
       .filter((b) => b.off >= 0)
       .map((b) => ({kind: 'bill' as const, id: b.id, off: b.off})),
-    {kind: 'payday' as const, id: 'payday', off: DAYS},
+    {kind: 'payday' as const, id: 'payday', off: daysToPayday},
   ].sort((a, b) => a.off - b.off || (a.kind === 'payday' ? 1 : -1));
 
   return (
@@ -154,7 +154,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                   {bill.name}
                 </span>
                 <span style={{display: 'block', fontSize: 11.5, color: 'var(--muted)'}}>
-                  due {d(bill.off, today)}
+                  due {formatShortDate(bill.off, today)}
                 </span>
               </span>
               <span
@@ -166,7 +166,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                   ...(bill.paid ? {textDecoration: 'line-through', color: 'var(--muted-2)'} : {}),
                 }}
               >
-                −{fm(bill.amount).replace('−', '')}
+                −{formatMoney(bill.amount).replace('−', '')}
               </span>
             </div>
           );

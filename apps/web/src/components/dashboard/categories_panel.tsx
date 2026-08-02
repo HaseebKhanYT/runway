@@ -1,7 +1,7 @@
 'use client';
 
 import {type AppState} from '@runway/shared';
-import {fm} from '../../lib/format';
+import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import {useModals} from '../modals/modal_context';
@@ -91,8 +91,8 @@ export function CategoriesPanel({state}: {state: AppState}) {
                     }}
                   >
                     {cat.budget > 0
-                      ? `${fm(cat.spent)} / ${fm(cat.budget)}`
-                      : `${fm(cat.spent)} spent`}
+                      ? `${formatMoney(cat.spent)} / ${formatMoney(cat.budget)}`
+                      : `${formatMoney(cat.spent)} spent`}
                   </span>
                 )}
               </div>

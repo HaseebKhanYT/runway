@@ -2,7 +2,7 @@
 
 import {useClerk} from '@clerk/nextjs';
 import {type Cadence} from '@runway/shared';
-import {fm} from '../../../lib/format';
+import {formatMoney} from '../../../lib/format';
 import Link from 'next/link';
 import {useState, type ReactNode} from 'react';
 import {Onboarding} from '../../../components/onboarding/onboarding';
@@ -63,7 +63,7 @@ export default function SettingsPage() {
   const available = Math.max(0, state.cards.reduce((s, c) => s + c.limit, 0) - totalDebt);
   const cardsSummary =
     state.cards.length > 0
-      ? `${state.cards.length} card${state.cards.length === 1 ? '' : 's'} · ${fm(totalDebt)} debt · ${fm(available)} available`
+      ? `${state.cards.length} card${state.cards.length === 1 ? '' : 's'} · ${formatMoney(totalDebt)} debt · ${formatMoney(available)} available`
       : 'none yet — add them to unlock financing advice';
 
   const paydayLabel = profile.nextPay

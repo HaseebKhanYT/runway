@@ -40,7 +40,7 @@ export async function loadState(userId: string, db: PrismaTx = prisma): Promise<
   return serializeState({profile, accounts, bills, cats, txns, deletedTxns, goals, cards}, today);
 }
 
-function num(d: Prisma.Decimal | null): number {
+function toNumber(d: Prisma.Decimal | null): number {
   return d == null ? 0 : Number(d);
 }
 
@@ -57,7 +57,7 @@ function isoDate(d: Date | null): string | null {
  * `daysUntil` uses for bills. Mixing UTC parts for one side used to shift
  * evening transactions into "tomorrow" for negative-UTC-offset zones.
  */
-function txnOff(postedAt: Date, today: Date): number {
+function daysFromToday(postedAt: Date, today: Date): number {
   return Math.round((midnight(postedAt) - midnight(today)) / MS_PER_DAY);
 }
 
@@ -81,9 +81,9 @@ function serializeState(rows: Rows, today: Date): AppState {
       email: profile.email,
       cadence: profile.cadence as Cadence,
       nextPay: isoDate(profile.nextPay),
-      payAmount: num(profile.payAmount),
+      payAmount: toNumber(profile.payAmount),
       primaryName: profile.primaryName,
-      primaryBalance: num(profile.primaryBalance),
+      primaryBalance: toNumber(profile.primaryBalance),
       primaryLogo: profile.primaryLogo,
       notifBills: profile.notifBills,
       notifWeekly: profile.notifWeekly,
@@ -93,7 +93,7 @@ function serializeState(rows: Rows, today: Date): AppState {
       id: a.id,
       name: a.name,
       type: a.type as AppState['accounts'][number]['type'],
-      balance: num(a.balance),
+      balance: toNumber(a.balance),
       logo: a.logo,
     })),
     bills: rows.bills.map((b) => {
@@ -101,7 +101,7 @@ function serializeState(rows: Rows, today: Date): AppState {
       return {
         id: b.id,
         name: b.name,
-        amount: num(b.amount),
+        amount: toNumber(b.amount),
         kind: b.kind as AppState['bills'][number]['kind'],
         dueDate: due,
         off: daysUntil(due, today),
@@ -117,8 +117,8 @@ function serializeState(rows: Rows, today: Date): AppState {
     cats: rows.cats.map((c) => ({
       id: c.id,
       name: c.name,
-      budget: num(c.budget),
-      spent: num(c.spent),
+      budget: toNumber(c.budget),
+      spent: toNumber(c.spent),
       color: c.color,
       locked: c.locked,
       sortOrder: c.sortOrder,
@@ -128,28 +128,28 @@ function serializeState(rows: Rows, today: Date): AppState {
     goals: rows.goals.map((g) => ({
       id: g.id,
       name: g.name,
-      target: num(g.target),
-      saved: num(g.saved),
-      per: num(g.per),
+      target: toNumber(g.target),
+      saved: toNumber(g.saved),
+      per: toNumber(g.per),
       note: g.note,
       due: isoDate(g.due),
       necessity: g.necessity,
       paused: g.paused,
       behind: g.behind,
-      financed: num(g.financed),
+      financed: toNumber(g.financed),
       financedFrom: g.financedFrom,
     })),
     cards: rows.cards.map((c) => ({
       id: c.id,
       name: c.name,
-      apr: num(c.apr),
-      limit: num(c.limit),
-      balance: num(c.balance),
+      apr: toNumber(c.apr),
+      limit: toNumber(c.limit),
+      balance: toNumber(c.balance),
       dueDay: c.dueDay,
-      minPay: c.minPay == null ? null : num(c.minPay),
+      minPay: c.minPay == null ? null : toNumber(c.minPay),
       payInFull: c.payInFull,
       rewards: (c.rewards as unknown as CardReward[]) ?? [],
-      promoRate: c.promoRate == null ? null : num(c.promoRate),
+      promoRate: c.promoRate == null ? null : toNumber(c.promoRate),
       promoEnd: isoDate(c.promoEnd),
       balanceUpdatedAt: c.balanceUpdatedAt.toISOString(),
     })),
@@ -160,10 +160,10 @@ function serializeTxn(t: Txn, today: Date): AppState['txns'][number] {
   return {
     id: t.id,
     label: t.label,
-    amount: num(t.amount),
+    amount: toNumber(t.amount),
     cat: t.cat,
     postedAt: t.postedAt.toISOString(),
-    off: txnOff(t.postedAt, today),
+    off: daysFromToday(t.postedAt, today),
     src: t.src,
     cardId: t.cardId,
     billId: t.billId,

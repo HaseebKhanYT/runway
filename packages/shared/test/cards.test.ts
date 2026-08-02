@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {effApr, minPaymentGuess, payoffProjection, suggestRewards} from '../src/card_math';
+import {effectiveApr, minPaymentGuess, payoffProjection, suggestRewards} from '../src/cards';
 import type {Card} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');
@@ -22,13 +22,13 @@ function makeCard(partial: Partial<Card>): Card {
   };
 }
 
-describe('effApr', () => {
+describe('effectiveApr', () => {
   it('uses promo rate while the promo is live', () => {
-    expect(effApr(makeCard({promoRate: 0, promoEnd: '2026-12-03'}), TODAY)).toBe(0);
+    expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-12-03'}), TODAY)).toBe(0);
   });
   it('falls back to real APR when promo expired or absent', () => {
-    expect(effApr(makeCard({promoRate: 0, promoEnd: '2026-07-01'}), TODAY)).toBe(17.9);
-    expect(effApr(makeCard({}), TODAY)).toBe(17.9);
+    expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-07-01'}), TODAY)).toBe(17.9);
+    expect(effectiveApr(makeCard({}), TODAY)).toBe(17.9);
   });
 });
 

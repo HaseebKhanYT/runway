@@ -28,7 +28,7 @@ describe('computePlan', () => {
   it('fits a small wish inside the demo seed spare balance', () => {
     const summary = plan();
     // 280 over 2 months = 4 paychecks
-    expect(summary.per).toBe(70);
+    expect(summary.perPaycheck).toBe(70);
     expect(summary.over).toBe(false);
     expect(summary.covered).toBe(true);
     expect(summary.levers).toEqual([]);
@@ -39,7 +39,7 @@ describe('computePlan', () => {
 
   it('offers pause, card (cheapest first), and earn levers for an oversized necessity', () => {
     const summary = plan({target: 8000, months: 1, kind: 'necessity'});
-    expect(summary.per).toBe(4000);
+    expect(summary.perPaycheck).toBe(4000);
     expect(summary.over).toBe(true);
     expect(summary.covered).toBe(false);
     // Both demo goals are unpaused wishes; Card B's 0% promo sorts before Card A

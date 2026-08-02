@@ -4,12 +4,12 @@ import {
   goalBehind,
   goalChecks,
   goalDays,
-  goalPer,
+  goalPerPaycheck,
   goalPerMonth,
   goalRemaining,
   round2,
   spareMonthly,
-} from '../src/goal_math';
+} from '../src/goals';
 import type {Goal} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');
@@ -46,19 +46,19 @@ describe('goalRemaining', () => {
   });
 });
 
-describe('goalPer', () => {
+describe('goalPerPaycheck', () => {
   it('uses planned per when no due date', () => {
-    expect(goalPer(makeGoal({}), 'biweekly', TODAY)).toBe(40);
+    expect(goalPerPaycheck(makeGoal({}), 'biweekly', TODAY)).toBe(40);
   });
   it('is zero when fully funded', () => {
-    expect(goalPer(makeGoal({saved: 1000}), 'biweekly', TODAY)).toBe(0);
+    expect(goalPerPaycheck(makeGoal({saved: 1000}), 'biweekly', TODAY)).toBe(0);
   });
   it('spreads remaining over remaining paychecks when due', () => {
     // 280 days out -> checks = floor(280/14) = 20; remaining 1540 -> ceil(1540/20) = 77
     const goal = makeGoal({target: 2400, saved: 860, per: 85, due: '2027-04-22'});
     expect(goalDays(goal, TODAY)).toBe(280);
     expect(goalChecks(goal, 'biweekly', TODAY)).toBe(20);
-    expect(goalPer(goal, 'biweekly', TODAY)).toBe(77);
+    expect(goalPerPaycheck(goal, 'biweekly', TODAY)).toBe(77);
   });
 });
 
