@@ -11,17 +11,24 @@ are written here. `CLAUDE.md` imports it, so Claude Code reads the same rules.
 | ----------------- | ------------------------------------------------------------------------- |
 | `apps/web`        | Next.js 15 App Router frontend, Clerk auth, TanStack Query                |
 | `apps/api`        | Hono REST API — Clerk JWT verification, Prisma, transactional money flows |
-| `packages/shared` | Pure domain math and Zod schemas, imported by both apps                   |
+| `packages/shared` | Pure domain math, Zod schemas and the demo fixture, imported by both apps |
 
-TypeScript source files and React components are named in `snake_case`. Match
-the surrounding file rather than introducing a second convention.
+The README's [Repository layout](./README.md#repository-layout) section maps
+the directories inside each package and the placement rules behind them
+(decided in #40).
+
+TypeScript source files are named in `kebab-case`. One legacy exception:
+existing React component files in `apps/web/src` are still `snake_case` and
+stay that way until a dedicated rename lands — inside those directories, match
+the surrounding files. New modules elsewhere (including `apps/web/src/lib`)
+are kebab-case.
 
 ## Commands
 
 ```bash
 pnpm dev               # api :8787 + web :3000
 pnpm typecheck
-pnpm test              # DB-free: shared math + api pure modules
+pnpm test              # DB-free: shared math + api pure modules + web presentation
 pnpm test:integration  # needs Postgres on :5433
 pnpm format            # Prettier, writes
 pnpm format:check      # Prettier, verifies — this is what CI runs
