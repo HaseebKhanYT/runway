@@ -47,17 +47,18 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
             borderRadius: 2,
           }}
         />
-        {/* Today node */}
+        {/* Today node — dot sits on the rail, label above it, like every other node.
+            Its dot is 16px against the others' 22px, so the offset is 8px not 11px,
+            and the gap is 10px so both kinds of label share one baseline. */}
         <div
           style={{
             position: 'absolute',
             left: '3%',
-            top: '50%',
-            transform: 'translateY(-50%)',
+            bottom: 'calc(50% - 8px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 5,
+            gap: 10,
           }}
         >
           <div style={{textAlign: 'center'}}>
