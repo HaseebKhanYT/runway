@@ -1,3 +1,4 @@
+import {round2} from '@runway/shared';
 import {prisma} from '../lib/db';
 import {syncCardBill} from './card-bill-sync';
 
@@ -11,9 +12,17 @@ export async function logCardPayment(
   await prisma.$transaction(async (tx) => {
     const card = await tx.card.findFirst({where: {id: cardId, userId}});
     if (!card) return;
+    // A manual payment settles as many whole installments of a term plan as it
+    // covers — paying two months up front should shorten the plan by two.
+    const per = Number(card.planInstallment);
+    const settled = per > 0 ? Math.min(card.planMonthsLeft, Math.floor(round2(amount) / per)) : 0;
     await tx.card.update({
       where: {id: cardId},
-      data: {balance: {decrement: amount}, balanceUpdatedAt: new Date()},
+      data: {
+        balance: {decrement: amount},
+        ...(settled > 0 ? {planMonthsLeft: {decrement: settled}} : {}),
+        balanceUpdatedAt: new Date(),
+      },
     });
     let src = 'Main checking';
     if (source !== 'checking') {

@@ -134,7 +134,17 @@ export const plannerStartSchema = z.object({
   kind: z.enum(['wish', 'necessity']),
   pausedIds: z.array(z.string()).default([]),
   cardId: z.string().nullable().optional(),
+  /**
+   * The principal the planner advertised on the chosen card — the shortfall
+   * left after the other levers, not the whole target. The server clamps it
+   * to the card's headroom and the target, so this can only ever finance
+   * less than those bounds; defaulting to 0 means a caller that forgets the
+   * field finances nothing rather than silently charging the full target.
+   */
+  financed: money.nonnegative().default(0),
   earn: z.boolean().default(false),
+  /** The extra monthly income the "Earn the rest" lever asked the user for. */
+  earnMonthly: money.nonnegative().default(0),
 });
 
 export const onboardingCompleteSchema = z.object({

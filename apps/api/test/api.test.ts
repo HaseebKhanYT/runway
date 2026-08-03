@@ -1,4 +1,10 @@
-import type {AppState} from '@runway/shared';
+import {
+  computeRunway,
+  goalBehind,
+  goalPerPaycheck,
+  perPaycheckFor,
+  type AppState,
+} from '@runway/shared';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {app} from '../src/app';
 import {prisma} from '../src/lib/db';
@@ -347,6 +353,295 @@ describe('onboarding', () => {
     expect(state.cats).toHaveLength(3);
     expect(state.txns).toHaveLength(0);
     expect(state.goals).toHaveLength(0);
+  });
+});
+
+describe('planner', () => {
+  it('opens a plan on the set-aside the runway will read back', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Boiler',
+      target: 8000,
+      months: 2,
+      kind: 'necessity',
+      pausedIds: [],
+    });
+
+    const goal = state.goals.find((g) => g.name === 'Boiler');
+    const today = new Date();
+    // The number written down and the number read back have to be the same
+    // one. They diverged whenever the term did not hold exactly `months × 2`
+    // paychecks, which depends on the day of the month this runs — so the
+    // assertion is the invariant, not a fixed figure.
+    expect(goal?.per).toBe(goalPerPaycheck(goal!, state.profile.cadence, today));
+    expect(goalBehind(goal!, state.profile.cadence, today)).toBe(false);
+  });
+
+  it('a card over its limit finances nothing and funds no goal', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Maxed',
+      apr: 22,
+      limit: 1000,
+      balance: 1500,
+      dueDay: 12,
+    });
+    const maxed = withCard.cards.find((c) => c.name === 'Maxed');
+    expect(maxed?.balance).toBe(1500);
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Roof repair',
+      target: 3000,
+      months: 6,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: maxed?.id,
+    });
+
+    const goal = state.goals.find((g) => g.name === 'Roof repair');
+    // Headroom is -500. Clamped to 0, so nothing is financed and no card is
+    // credited with funding the goal.
+    expect(goal?.financed).toBe(0);
+    expect(goal?.saved).toBe(0);
+    expect(goal?.financedFrom).toBeNull();
+    expect(state.cards.find((c) => c.id === maxed?.id)?.balance).toBe(1500);
+  });
+
+  it('charges the card the advertised shortfall, not the whole target', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Roomy',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const roomy = withCard.cards.find((c) => c.name === 'Roomy');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: roomy?.id,
+      financed: 2153,
+    });
+
+    // The lever said $2,153. The card is charged $2,153 — the remaining
+    // $5,847 of the target stays a paycheck set-aside.
+    expect(state.cards.find((c) => c.id === roomy?.id)?.balance).toBe(2153);
+    const goal = state.goals.find((g) => g.name === 'Hospital bill');
+    expect(goal?.financed).toBe(2153);
+    expect(goal?.saved).toBe(2153);
+    expect(goal?.financedFrom).toBe('Roomy');
+  });
+
+  it('never finances more than the headroom the card actually has', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Tight',
+      apr: 19.9,
+      limit: 1000,
+      balance: 400,
+      dueDay: 9,
+    });
+    const tight = withCard.cards.find((c) => c.name === 'Tight');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Overreach',
+      target: 5000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: tight?.id,
+      // A client asking for more than the card can lend is still bounded.
+      financed: 5000,
+    });
+
+    expect(state.cards.find((c) => c.id === tight?.id)?.balance).toBe(1000);
+    expect(state.goals.find((g) => g.name === 'Overreach')?.financed).toBe(600);
+  });
+
+  it('records the financed principal once, on the card that funded it', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Single',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const single = withCard.cards.find((c) => c.name === 'Single');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: single?.id,
+      financed: 6000,
+    });
+
+    expect(state.cards.find((c) => c.id === single?.id)?.balance).toBe(6000);
+    // One debt, one obligation. There is no free-standing "<plan> financing"
+    // bill beside the card's own payment bill describing the same principal.
+    expect(state.bills.filter((b) => b.name.includes('financing'))).toEqual([]);
+    expect(state.bills.filter((b) => b.cardId === single?.id)).toHaveLength(1);
+  });
+
+  it('paying a financed plan reduces the balance on the card that funded it', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Repayable',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay: 11,
+    });
+    const repayable = withCard.cards.find((c) => c.name === 'Repayable');
+
+    const {state: locked} = await call('POST', '/planner/start', {
+      name: 'Boiler',
+      target: 6000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: repayable?.id,
+      financed: 6000,
+    });
+    const before = locked.cards.find((c) => c.id === repayable?.id);
+    const bill = locked.bills.find((b) => b.cardId === repayable?.id);
+    expect(bill).toBeDefined();
+    // The plan owns no bill of its own. Anything it put on the runway is the
+    // card's payment bill, so there is no debt bill whose payment clears
+    // nothing for want of a cardId.
+    expect(locked.bills.filter((b) => b.name.startsWith('Boiler'))).toEqual([]);
+    expect(locked.bills.filter((b) => b.kind === 'debt' && b.cardId == null)).toEqual([]);
+
+    const {state: after} = await call('POST', `/bills/${bill?.id}/pay`, {source: 'checking'});
+    // Every dollar of the installment lands on the principal, because the only
+    // bill describing the plan is the card's own — it carries a cardId.
+    expect(after.cards.find((c) => c.id === repayable?.id)?.balance).toBe(
+      (before?.balance ?? 0) - (bill?.amount ?? 0),
+    );
+  });
+
+  it('puts one installment of a financed plan on the runway, not the principal', async () => {
+    // Issue #16's reported scenario, end to end: biweekly $2,000 pay, $2,000
+    // in the bank, a pay-in-full card with $10,000 of room, and an $8,000
+    // necessity financed over 12 months.
+    const today = new Date();
+    const nextPay = new Date(today);
+    nextPay.setUTCDate(nextPay.getUTCDate() + 14);
+    await call('POST', '/onboarding/complete', {
+      balance: 2000,
+      pay: 2000,
+      cadence: 'biweekly',
+      nextPay: nextPay.toISOString().slice(0, 10),
+      bills: [],
+      cards: [],
+      cats: [{name: 'Groceries', budget: 300}],
+    });
+
+    // A due day whose next occurrence is a few days out in any month, so the
+    // card bill always falls inside this cycle.
+    const dueDay = ((today.getUTCDate() + 2) % 28) + 1;
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Card X',
+      apr: 24.99,
+      limit: 10000,
+      balance: 0,
+      dueDay,
+      payInFull: true,
+    });
+    const cardX = withCard.cards.find((c) => c.name === 'Card X');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Hospital bill',
+      target: 8000,
+      months: 12,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: cardX?.id,
+      financed: 8000,
+    });
+
+    const bill = state.bills.find((b) => b.cardId === cardX?.id);
+    // ceil(8000 / 12), once — not the $8,000 principal a pay-in-full card
+    // would otherwise demand on its next due day.
+    expect(bill?.amount).toBe(667);
+    expect(state.cards.find((c) => c.id === cardX?.id)?.balance).toBe(8000);
+    expect(state.bills).toHaveLength(1);
+
+    const runway = computeRunway(state, today);
+    expect(bill?.off).toBeLessThan(runway.daysToPayday);
+    expect(runway.billsDueBeforePayday).toBe(667);
+    // The number the issue says the user should see: $2,000 − one installment.
+    expect(runway.safe).toBe(1333);
+  });
+
+  it('records the earn commitment on the plan', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Wedding',
+      target: 6000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: null,
+      earn: true,
+      earnMonthly: 340,
+    });
+    const goal = state.goals.find((g) => g.name === 'Wedding');
+    expect(goal?.earnMonthly).toBe(340);
+  });
+
+  it('ignores an earn figure when the earn lever was not taken', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Patio',
+      target: 3000,
+      months: 6,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: null,
+      earn: false,
+      earnMonthly: 500,
+    });
+    expect(state.goals.find((g) => g.name === 'Patio')?.earnMonthly).toBe(0);
+  });
+
+  it('asks paychecks only for the part the card did not front', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Helper',
+      apr: 18,
+      limit: 10000,
+      balance: 0,
+      dueDay: 14,
+    });
+    const helper = withCard.cards.find((c) => c.name === 'Helper');
+
+    const {state} = await call('POST', '/planner/start', {
+      name: 'New roof',
+      target: 6000,
+      months: 10,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: helper?.id,
+      financed: 2000,
+    });
+    // $4,000 spread over the paychecks left — not the whole $6,000, $2,000 of
+    // which the card has already paid. Asserted against the same arithmetic
+    // the app reads the goal back with rather than a fixed figure, because
+    // how many paychecks land before the due date depends on today's date.
+    const goal = state.goals.find((g) => g.name === 'New roof')!;
+    const cadence = state.profile.cadence;
+    const today = new Date();
+    expect(goal.per).toBe(perPaycheckFor(4000, goal.due!, cadence, today));
+    expect(goal.per).toBeLessThan(perPaycheckFor(6000, goal.due!, cadence, today));
   });
 });
 

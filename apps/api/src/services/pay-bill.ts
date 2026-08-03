@@ -16,6 +16,13 @@ export async function payBill(userId: string, billId: string, source: string): P
         where: {id: bill.cardId, userId},
         data: {balance: {decrement: amount}},
       });
+      // The bill included one installment of any term plan riding on the
+      // card, so that installment is now settled. Guarded rather than floored:
+      // a card with no plan left must not go negative and count back up.
+      await tx.card.updateMany({
+        where: {id: bill.cardId, userId, planMonthsLeft: {gt: 0}},
+        data: {planMonthsLeft: {decrement: 1}},
+      });
     }
     if (resolved.kind === 'card' && resolved.id !== bill.cardId) {
       // Charged to a card: card balance goes up, cash untouched.
@@ -59,6 +66,16 @@ export async function unpayBill(userId: string, billId: string): Promise<void> {
       await tx.card.updateMany({
         where: {id: bill.cardId, userId},
         data: {balance: {increment: amount}},
+      });
+      // Puts the installment back on a plan that is still running. A plan
+      // already at zero stays there: nothing distinguishes "this payment
+      // finished it" from "it was finished long ago", and resurrecting a
+      // settled plan would bill an installment that is not owed. Undoing the
+      // final payment therefore restores the principal but not the term — the
+      // balance is billed by the card's ordinary rule from then on.
+      await tx.card.updateMany({
+        where: {id: bill.cardId, userId, planMonthsLeft: {gt: 0}},
+        data: {planMonthsLeft: {increment: 1}},
       });
     }
     if (resolved.kind === 'card' && resolved.id !== bill.cardId) {

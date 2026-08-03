@@ -1,4 +1,7 @@
 import {
+  cardPaymentDue,
+  computeRunway,
+  daysUntil,
   effectiveApr,
   goalPerPaycheck,
   type AppState,
@@ -19,25 +22,56 @@ export interface PlanInput {
 }
 
 export interface PlanLever {
-  kind: 'pause' | 'card' | 'earn' | 'add-cards';
+  kind: 'pause' | 'card' | 'earn' | 'extend' | 'add-cards';
   id: string;
   title: string;
   sub: string;
+  /** For the extend lever: the term it moves the plan to. */
+  months?: number;
+}
+
+/** What the runway looks like the moment after this plan is locked in. */
+export interface PlanProjection {
+  safe: number;
+  cycleSurplus: number;
+  effectivePerDay: number;
+}
+
+/** A term that runs past the card's promotional rate. */
+export interface PromoCliff {
+  /** Months of the term still covered by the promo. */
+  covered: number;
+  /** Months billed at the card's standard rate instead. */
+  exposed: number;
+  reversionApr: number;
+  ends: string;
 }
 
 export interface PlanSummary {
   perPaycheck: number;
   free: number;
   spare: number;
-  sparePer: number;
+  /** The largest per-paycheck set-aside that still leaves the day at zero. */
   cap: number;
   initialGap: number;
   over: boolean;
-  cushioned: boolean;
   freed: number;
   remainingGap: number;
   financed: number;
   interest: number;
+  /** Principal plus interest — what the plan costs in total. */
+  totalCost: number;
+  /** Extra income per month the "Earn the rest" lever is asking for. */
+  earnMonthly: number;
+  /** The runway as it will read once this plan is locked in. */
+  projection: PlanProjection;
+  /** The projected runway survives this cycle — nothing goes negative now. */
+  solvent: boolean;
+  /** Every cycle after this one carries the plan without dipping into savings. */
+  sustainable: boolean;
+  /** Soonest term that gets the day back to zero, or null if none within reach. */
+  minViableMonths: number | null;
+  promoCliff: PromoCliff | null;
   covered: boolean;
   perLine: string;
   perColor: string;
@@ -48,6 +82,200 @@ export interface PlanSummary {
 }
 
 const PAYCHECKS_PER_MONTH = 2;
+/** How far the term search looks before it calls a plan unaffordable. */
+const MAX_TERM_MONTHS = 60;
+
+/** Local-parts ISO date, matching how the server stamps a plan's due date. */
+function isoLocal(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** One candidate plan, measured against the runway it would leave behind. */
+interface Evaluation {
+  runway: RunwaySummary;
+  /**
+   * What the plan actually costs per paycheck. Not `target / (months × 2)`:
+   * the set-aside the runway charges is `goalPerPaycheck`, which counts the
+   * paychecks that land before the due date, and a term of N months rarely
+   * contains exactly 2N of them. Quoting the arithmetic figure understated
+   * every plan whose due date fell short of a whole number of cycles.
+   */
+  per: number;
+  financed: number;
+  /**
+   * How much per paycheck this plan must stop asking for before the daily
+   * number climbs back to zero. `safe` and `cycleSurplus` each move dollar for
+   * dollar with the set-aside and `effectivePerDay` is the worse of the two,
+   * so the larger of the two deficits is the whole shortfall.
+   */
+  shortfall: number;
+}
+
+/**
+ * The state this plan would leave behind, built the same way the server builds
+ * it: the card carries the principal and a term, its payment bill is restated
+ * by the shared `cardPaymentDue`, paused wishes stop asking for money, and the
+ * new goal joins the set-asides. Running the real `computeRunway` over this is
+ * what makes the projection trustworthy — the planner and the runway cannot
+ * drift apart, because there is only one calculation.
+ */
+function projectState(
+  input: PlanInput,
+  state: AppState,
+  financed: number,
+  months: number,
+  today: Date,
+): {state: AppState; planned: Goal} {
+  const card = input.cardId ? state.cards.find((c) => c.id === input.cardId) : undefined;
+  const installment = financed > 0 ? Math.ceil(financed / months) : 0;
+
+  const cards = state.cards.map((c) =>
+    c.id === card?.id && financed > 0
+      ? {
+          ...c,
+          balance: c.balance + financed,
+          planInstallment: c.planInstallment + installment,
+          planMonthsLeft: Math.max(c.planMonthsLeft, months),
+        }
+      : c,
+  );
+
+  const projectedCard = cards.find((c) => c.id === card?.id);
+  const bills = state.bills.map((b) =>
+    projectedCard && b.cardId === projectedCard.id
+      ? {...b, amount: cardPaymentDue(projectedCard, b.amount)}
+      : b,
+  );
+
+  const due = new Date(today.getFullYear(), today.getMonth() + months, 1);
+  const planned: Goal = {
+    id: '__planned',
+    name: input.name || 'This plan',
+    target: input.target,
+    saved: financed,
+    per: Math.max(0, Math.ceil((input.target - financed) / (months * PAYCHECKS_PER_MONTH))),
+    note: '',
+    due: isoLocal(due),
+    necessity: input.kind === 'necessity',
+    paused: null,
+    behind: false,
+    financed,
+    financedFrom: financed > 0 ? (card?.name ?? null) : null,
+    earnMonthly: 0,
+  };
+
+  const goals = state.goals
+    .map((g) => (input.pausedIds.includes(g.id) ? {...g, paused: input.name || 'this plan'} : g))
+    .concat(planned);
+
+  return {state: {...state, cards, bills, goals}, planned};
+}
+
+/**
+ * Price one candidate term against the real runway. The card is sized here
+ * rather than by the caller because the shortfall it is meant to close is
+ * itself a projected figure: what the plan asks for once the paused wishes
+ * have given back what they can.
+ */
+function evaluate(
+  input: PlanInput,
+  state: AppState,
+  months: number,
+  today: Date,
+  card: Card | undefined,
+): Evaluation {
+  const bare = projectState(input, state, 0, months, today);
+  let projected = bare;
+  let runway = computeRunway(bare.state, today);
+
+  // Charge the card the shortfall the lever advertises and no more (#17),
+  // bounded by the headroom it actually has and by the plan itself.
+  //
+  // Turning a per-paycheck shortfall back into a principal is not exact: the
+  // installment lands in the bills, and how much of it falls before payday
+  // depends on the card's due day. So the figure is re-measured and topped up
+  // rather than trusted first time — otherwise the lever stops a few cents
+  // short of the goal it was chosen to reach, and the plan reads as refused
+  // over $0.28. The residual shrinks fast; this settles in two or three
+  // passes and is capped either way.
+  let financed = 0;
+  if (card) {
+    const ceiling = Math.min(
+      Math.max(0, Math.floor(card.limit - card.balance)),
+      Math.ceil(input.target),
+    );
+    for (let pass = 0; pass < 4; pass++) {
+      const residual = shortfall(runway);
+      if (residual <= 0 || financed >= ceiling) break;
+      const next = Math.min(ceiling, financed + Math.ceil(residual * months * PAYCHECKS_PER_MONTH));
+      if (next <= financed) break;
+      financed = next;
+      projected = projectState(input, state, financed, months, today);
+      runway = computeRunway(projected.state, today);
+    }
+  }
+  return {
+    runway,
+    per: goalPerPaycheck(projected.planned, state.profile.cadence, today),
+    financed,
+    shortfall: shortfall(runway),
+  };
+}
+
+function shortfall(r: RunwaySummary): number {
+  return Math.max(0, -r.safe, -r.cycleSurplus);
+}
+
+/**
+ * The soonest term that gets the daily number back to zero, which is the
+ * answer the "give it longer" lever exists to give. Scanning is what makes the
+ * lever terminate: offering a fixed +6 months left the user clicking until
+ * something happened, with no promise that anything ever would.
+ */
+function minViableTerm(
+  input: PlanInput,
+  state: AppState,
+  today: Date,
+  card: Card | undefined,
+  from: number,
+): number | null {
+  for (let m = from + 1; m <= MAX_TERM_MONTHS; m++) {
+    if (evaluate(input, state, m, today, card).shortfall === 0) return m;
+  }
+  return null;
+}
+
+/**
+ * Interest over the term. The existing shape — rate × months / 24 — is applied
+ * once per rate rather than once overall, so a term that outruns a promotional
+ * window is costed at the promo rate for the months it covers and at the
+ * card's standard rate for the rest. Quoting $0 for a 24-month plan on a
+ * 12-month promo is the thing this is here to stop.
+ */
+function planInterest(card: Card | undefined, financed: number, months: number, today: Date) {
+  if (!card || financed <= 0) return {interest: 0, cliff: null as PromoCliff | null};
+  const promoRate = effectiveApr(card, today);
+  const onPromo = promoRate !== card.apr && card.promoEnd != null;
+  const promoMonths = onPromo
+    ? Math.max(0, Math.floor(daysUntil(card.promoEnd as string, today) / 30))
+    : months;
+  const covered = Math.min(months, promoMonths);
+  const exposed = Math.max(0, months - covered);
+
+  const at = (rate: number, m: number) =>
+    rate === 0 || m <= 0 ? 0 : Math.ceil(((financed * rate) / 100) * (m / 24));
+  const interest = at(promoRate, covered) + at(card.apr, exposed);
+
+  return {
+    interest,
+    cliff:
+      onPromo && exposed > 0
+        ? {covered, exposed, reversionApr: card.apr, ends: card.promoEnd as string}
+        : null,
+  };
+}
 
 /** Big-expense planner math (catalog §3.6) — exact copy strings. */
 export function computePlan(
@@ -57,14 +285,24 @@ export function computePlan(
   today: Date,
 ): PlanSummary {
   const months = Math.max(1, input.months);
-  const per = input.target / (months * PAYCHECKS_PER_MONTH);
   const free = Math.max(0, runway.cycleSurplus);
   const spare = Math.max(0, runway.safe);
-  const sparePer = spare / (months * PAYCHECKS_PER_MONTH);
-  const cap = free + sparePer;
-  const initialGap = per - cap;
-  const over = per > cap;
-  const cushioned = per > free && !over;
+
+  const card: Card | undefined = input.cardId
+    ? state.cards.find((c) => c.id === input.cardId)
+    : undefined;
+
+  // The plan as typed, before any lever — this is what the headline quotes and
+  // what decides whether the levers appear at all.
+  const bare = evaluate({...input, pausedIds: []}, state, months, today, undefined);
+  const per = bare.per;
+  const initialGap = bare.shortfall;
+  const over = initialGap > 0;
+  // What a paycheck could carry without the day going red. Derived from the
+  // projection rather than assumed: the old `free + spare / paychecks` counted
+  // the balance as if it arrived again every cycle, which is precisely how a
+  // plan could read "covered" while the daily number sat at −$122.
+  const cap = Math.max(0, per - initialGap);
 
   const cadence = state.profile.cadence;
   const pausableWishes = state.goals.filter(
@@ -74,29 +312,35 @@ export function computePlan(
   const freed = pausableWishes
     .filter((g) => input.pausedIds.includes(g.id))
     .reduce((sum, g) => sum + goalPerPaycheck(g, cadence, today), 0);
-  const remainingGap = Math.max(0, initialGap - freed);
 
-  const card: Card | undefined = input.cardId
-    ? state.cards.find((c) => c.id === input.cardId)
-    : undefined;
-  const financed = card
-    ? Math.min(
-        Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH),
-        Math.floor(card.limit - card.balance),
-        Math.ceil(input.target),
-      )
-    : 0;
-  const eff = card ? effectiveApr(card, today) : 0;
-  const interest = eff === 0 ? 0 : Math.ceil(((financed * eff) / 100) * (months / 24));
+  // The plan as it stands, with every lever the user has picked applied.
+  const now = evaluate(input, state, months, today, card);
+  const financed = now.financed;
+  const remainingGap = now.shortfall;
+  const {interest, cliff} = planInterest(card, financed, months, today);
+  const totalCost = financed + interest;
+  // The figure the "Earn the rest" lever quotes, hoisted out of the lever list
+  // so the same number can be sent to the server and recorded on the plan.
+  const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
 
-  const covered =
-    initialGap <= 0 ||
-    remainingGap <= 0 ||
-    (!!card && financed >= Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH) - 1) ||
-    input.earn;
+  const projection = {
+    safe: now.runway.safe,
+    cycleSurplus: now.runway.cycleSurplus,
+    effectivePerDay: now.runway.effectivePerDay,
+  };
+  const solvent = projection.safe >= 0;
+  const sustainable = projection.cycleSurplus >= 0;
+  // The bar is the number on the hero: what this plan leaves you to spend per
+  // day. `effectivePerDay` is `min(thisCyclePerDay, sustainablePerDay)`, so
+  // holding it at or above zero means the plan survives both this cycle and
+  // every cycle after it — the first paid for out of the balance, the second
+  // out of the paycheck. A lever that finds the money but drives the daily
+  // number below zero has not solved anything, so sourcing alone is not
+  // coverage (#37).
+  const covered = projection.effectivePerDay >= 0;
 
   const isNecessity = input.kind === 'necessity';
-  const perLine = buildPerLine(input.kind, per, free, spare, over, cushioned, initialGap);
+  const perLine = buildPerLine(input.kind, per, cap, over, initialGap);
   const perColor = isNecessity
     ? over && !covered
       ? '#c2410c'
@@ -105,8 +349,19 @@ export function computePlan(
       ? '#c2410c'
       : '#8b6fd8';
 
+  // Only worth searching when something has to give, and keyed off the plan as
+  // typed so the answer does not move as levers are toggled.
+  const minViableMonths =
+    isNecessity && over ? minViableTerm(input, state, today, card, months) : null;
+
   const levers: PlanLever[] = [];
-  if (isNecessity && initialGap > 0) {
+  // Keyed off the plan as typed, not off the current verdict: were these to
+  // disappear the moment the plan came good, the pause and card the user just
+  // picked would vanish with them and could not be undone.
+  if (isNecessity && over) {
+    // Cheapest first now means debt last. Pausing, stretching the term and
+    // earning cost nothing; a card lever is the only one that ends in
+    // interest, so it stops being the first answer offered.
     for (const g of pausableWishes) {
       levers.push({
         kind: 'pause',
@@ -115,6 +370,25 @@ export function computePlan(
         sub: `frees ${formatMoney(goalPerPaycheck(g, cadence, today))} / paycheck while this plan runs`,
       });
     }
+    // The term that actually works, not a fixed step towards it. When no term
+    // inside `MAX_TERM_MONTHS` works, the lever is left out rather than
+    // offered as a move that cannot deliver what its label promises.
+    if (minViableMonths != null) {
+      const extra = minViableMonths - months;
+      levers.push({
+        kind: 'extend',
+        id: 'extend',
+        months: minViableMonths,
+        title: `Give it ${extra} more month${extra === 1 ? '' : 's'}`,
+        sub: `${formatMoney(evaluate(input, state, minViableMonths, today, card).per)} per paycheck instead of ${formatMoney(per)} — no interest, no paused wishes`,
+      });
+    }
+    levers.push({
+      kind: 'earn',
+      id: 'earn',
+      title: 'Earn the rest',
+      sub: `about ${formatMoney(earnMonthly)}/mo more — log it with the + as money in when it lands`,
+    });
     const sortedCards = [...state.cards]
       .filter((c) => Math.floor(c.limit - c.balance) > 0)
       .sort((a, b) => effectiveApr(a, today) - effectiveApr(b, today));
@@ -128,11 +402,10 @@ export function computePlan(
             year: 'numeric',
           })
         : null;
-      const cardFin = Math.min(
-        Math.ceil(remainingGap * months * PAYCHECKS_PER_MONTH),
-        Math.floor(c.limit - c.balance),
-        Math.ceil(input.target),
-      );
+      // Priced as if this card were the one chosen, so each row quotes what it
+      // would really carry rather than what is left over after the card the
+      // user happens to have selected already took its share.
+      const cardFin = evaluate({...input, cardId: c.id}, state, months, today, c).financed;
       const cardInterest =
         cardEff === 0 ? 0 : Math.ceil(((cardFin * cardEff) / 100) * (months / 24));
       levers.push({
@@ -153,39 +426,47 @@ export function computePlan(
         sub: 'Cards tab — APR, limit, balance off the statement',
       });
     }
-    const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
-    levers.push({
-      kind: 'earn',
-      id: 'earn',
-      title: 'Earn the rest',
-      sub: `about ${formatMoney(earnMonthly)}/mo more — log it with the + as money in when it lands`,
-    });
   }
 
   const parts: string[] = [];
   if (freed > 0) parts.push(`${formatMoney(freed)}/pay freed from paused wishes`);
   if (financed > 0) parts.push(`${formatMoney(financed)} on ${card?.name ?? ''}`);
+  // Name the constraint that is actually binding, and end on the move that
+  // clears it. "Pick another lever" is not advice when the levers left cannot
+  // reach; the term that works is.
+  const hint =
+    minViableMonths != null
+      ? `stretch it to ${minViableMonths} months`
+      : 'free up more or aim lower';
   const gapLine = covered
     ? `Covered ✓${parts.length ? ' · ' + parts.join(' · ') : ''}`
-    : `Still short ${formatMoney(remainingGap)} per paycheck — pick another lever`;
+    : !sustainable
+      ? `Still ${formatMoney(remainingGap)} short every paycheck — that leaves you ${formatMoney(projection.effectivePerDay, false)}/day. Now ${hint}`
+      : `The money is there, but this leaves you ${formatMoney(-projection.safe)} short before payday — ${hint}`;
 
-  const ctaLabel = isNecessity && initialGap > 0 ? 'Lock this plan in' : 'Start this plan';
-  const ctaEnabled =
-    input.name.trim().length > 0 && input.target > 0 && (isNecessity ? covered : !over);
+  const ctaLabel = isNecessity && levers.length > 0 ? 'Lock this plan in' : 'Start this plan';
+  // A wish that sinks the day is no more worth starting than a necessity that
+  // does, so both are held to the same bar.
+  const ctaEnabled = input.name.trim().length > 0 && input.target > 0 && covered;
 
   return {
     perPaycheck: per,
     free,
     spare,
-    sparePer,
     cap,
     initialGap,
     over,
-    cushioned,
     freed,
     remainingGap,
     financed,
     interest,
+    totalCost,
+    earnMonthly,
+    projection,
+    solvent,
+    sustainable,
+    minViableMonths,
+    promoCliff: cliff,
     covered,
     perLine,
     perColor,
@@ -200,32 +481,30 @@ function perDayDelta(per: number): number {
   return Math.round(per / 14);
 }
 
+/**
+ * The spare balance no longer appears here as something a recurring set-aside
+ * can be paid out of. It is a one-off: it can absorb a shortfall this cycle,
+ * but quoting it as headroom for every cycle is what made "fits, thanks to the
+ * $4,565 spare in your balance" a reassuring way to say the daily number was
+ * about to go negative.
+ */
 function buildPerLine(
   kind: 'wish' | 'necessity',
   per: number,
-  free: number,
-  spare: number,
+  cap: number,
   over: boolean,
-  cushioned: boolean,
   initialGap: number,
 ): string {
   const perF = `$${Math.round(per)}`;
-  const freeF = `$${Math.round(free)}`;
-  const spareF = `$${Math.round(spare)}`;
+  const capF = `$${Math.round(cap)}`;
   if (kind === 'wish') {
     if (over) {
-      return `That's ${perF} per paycheck — more than the ${freeF} each cycle can free up, even counting the ${spareF} spare in your balance. Pick a later month.`;
-    }
-    if (cushioned) {
-      return `That's ${perF} per paycheck — your ${spareF} spare balance covers what the cycles can't. About $${perDayDelta(per)}/day less to spend.`;
+      return `That's ${perF} per paycheck — ${capF} is all a cycle can spare without your daily number going negative. Pick a later month.`;
     }
     return `That's ${perF} per paycheck — about $${perDayDelta(per)}/day less to spend.`;
   }
-  if (!over && cushioned) {
-    return `That's ${perF} per paycheck — fits, thanks to the ${spareF} spare in your balance.`;
-  }
   if (!over) {
-    return `That's ${perF} per paycheck — it fits without denting your daily number.`;
+    return `That's ${perF} per paycheck — it fits, and your daily number stays positive.`;
   }
-  return `${perF} per paycheck needed — $${Math.round(initialGap)} more than your cycles + ${spareF} spare balance can free up. Find it below ↓`;
+  return `${perF} per paycheck needed — $${Math.round(initialGap)} more than a cycle can spare without your daily number going negative. Find it below ↓`;
 }

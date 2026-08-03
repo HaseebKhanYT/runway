@@ -76,6 +76,7 @@ export function demoData(today: Date): AppState {
         behind: false,
         financed: 0,
         financedFrom: null,
+        earnMonthly: 0,
       },
       {
         id: 'efund',
@@ -90,6 +91,7 @@ export function demoData(today: Date): AppState {
         behind: true,
         financed: 0,
         financedFrom: null,
+        earnMonthly: 0,
       },
     ],
     cards: [
@@ -102,6 +104,8 @@ export function demoData(today: Date): AppState {
         dueDay: null,
         minPay: null,
         payInFull: false,
+        planInstallment: 0,
+        planMonthsLeft: 0,
         rewards: [],
         promoRate: 0,
         promoEnd: iso(today, 140),
@@ -116,6 +120,8 @@ export function demoData(today: Date): AppState {
         dueDay: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 9).getDate(),
         minPay: 160,
         payInFull: false,
+        planInstallment: 0,
+        planMonthsLeft: 0,
         rewards: [],
         promoRate: null,
         promoEnd: null,

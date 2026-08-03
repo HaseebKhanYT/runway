@@ -14,6 +14,8 @@ function makeCard(partial: Partial<Card>): Card {
     dueDay: null,
     minPay: null,
     payInFull: false,
+    planInstallment: 0,
+    planMonthsLeft: 0,
     rewards: [],
     promoRate: null,
     promoEnd: null,

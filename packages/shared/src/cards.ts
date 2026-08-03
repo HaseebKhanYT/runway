@@ -1,4 +1,5 @@
 import {daysUntil} from './cycles';
+import {round2} from './goals';
 import type {Card, CardReward} from './types';
 
 /** Effective APR — promo rate while the promo is still live (catalog §3.7). */
@@ -28,6 +29,61 @@ export function payoffProjection(
 /** Design's minimum-payment pencil-in: 3% with a $25 floor. */
 export function minPaymentGuess(balance: number): number {
   return Math.max(25, Math.ceil(balance * 0.03));
+}
+
+type PlanFields = Pick<Card, 'balance' | 'planInstallment' | 'planMonthsLeft'>;
+
+/**
+ * The term-plan principal still outstanding on a card: what is left to pay,
+ * capped by the balance carrying it. A statement correction can shrink the
+ * balance out from under a plan, and a plan can never exceed what is owed.
+ */
+export function planPrincipal(c: PlanFields): number {
+  const left = Math.max(0, Math.floor(c.planMonthsLeft));
+  const per = Math.max(0, c.planInstallment);
+  return round2(Math.min(left * per, Math.max(0, c.balance)));
+}
+
+/**
+ * What a card asks for on its next due day: one installment of any term plan,
+ * plus whatever repayment rule the card carries applied to the rest.
+ *
+ * `payInFull` describes how someone clears their statement, and it is right
+ * for ordinary spending. It is wrong for a plan: choosing a term is precisely
+ * a statement that the principal is not due at once (#20). Splitting the
+ * balance keeps both halves honest on the same card.
+ */
+export function cardPaymentDue(
+  c: PlanFields & Pick<Card, 'payInFull' | 'minPay'>,
+  /** What the existing bill asks for, when nothing else determines it. */
+  fallback: number | null,
+): number {
+  const plan = planPrincipal(c);
+
+  if (plan > 0) {
+    const installment = Math.min(plan, Math.max(0, c.planInstallment));
+    const revolving = round2(Math.max(0, c.balance) - plan);
+    // No `fallback` branch while a plan runs: the existing bill amount
+    // already contains an installment, and reusing it would stack a second
+    // one on top at every sync.
+    const revolvingDue =
+      revolving <= 0
+        ? 0
+        : c.payInFull
+          ? revolving
+          : c.minPay != null
+            ? c.minPay
+            : minPaymentGuess(revolving);
+    return round2(installment + revolvingDue);
+  }
+
+  return c.payInFull
+    ? c.balance
+    : c.minPay != null
+      ? c.minPay
+      : fallback != null
+        ? fallback
+        : minPaymentGuess(c.balance);
 }
 
 interface RewardRule {

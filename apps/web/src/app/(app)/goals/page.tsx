@@ -159,6 +159,12 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
       )}
       <div style={{fontSize: 12.5, fontWeight: 600, color: status.color}}>{status.text}</div>
       <div style={{fontSize: 12.5, color: 'var(--financed)'}}>{perLine}</div>
+      {goal.earnMonthly > 0 && remaining > 0 && (
+        <div className="tnum" style={{fontSize: 12.5, color: 'var(--muted)'}}>
+          Depends on {formatMoney(goal.earnMonthly)}/mo of extra income — log it with the + as money
+          in when it lands
+        </div>
+      )}
 
       {settingAside && (
         <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
@@ -358,7 +364,21 @@ function PlannerCard({state}: {state: AppState}) {
 
   const start = useFlow<void>(() => ({
     path: '/planner/start',
-    json: {name: name.trim(), target, months: Math.max(1, months), kind, pausedIds, cardId, earn},
+    json: {
+      name: name.trim(),
+      target,
+      months: Math.max(1, months),
+      kind,
+      pausedIds,
+      cardId,
+      // The figure the lever showed, so the server charges the card the same
+      // number the user agreed to rather than recomputing the whole target.
+      financed: plan.financed,
+      earn,
+      // The figure the "Earn the rest" lever quoted, so the commitment is
+      // recorded on the plan rather than lost with the click.
+      earnMonthly: plan.earnMonthly,
+    },
   }));
 
   const monthLabel =
@@ -479,7 +499,7 @@ function PlannerCard({state}: {state: AppState}) {
         </div>
       )}
 
-      {showMath && kind === 'necessity' && plan.initialGap > 0 && (
+      {showMath && plan.levers.length > 0 && (
         <div
           style={{
             borderTop: '1px dashed var(--border-input)',
@@ -503,6 +523,8 @@ function PlannerCard({state}: {state: AppState}) {
                   : lever.kind === 'earn'
                     ? earn
                     : false;
+            // Extending rewrites the term rather than toggling a choice, so it
+            // never shows a tick — the month picker above is the record of it.
             return (
               <button
                 key={`${lever.kind}-${lever.id}`}
@@ -517,6 +539,8 @@ function PlannerCard({state}: {state: AppState}) {
                     setCardId(cardId === lever.id ? null : lever.id);
                   } else if (lever.kind === 'earn') {
                     setEarn(!earn);
+                  } else if (lever.kind === 'extend' && lever.months != null) {
+                    setMonths(Math.min(600, lever.months));
                   }
                 }}
                 style={{
@@ -567,6 +591,60 @@ function PlannerCard({state}: {state: AppState}) {
           >
             {plan.gapLine}
           </div>
+        </div>
+      )}
+
+      {showMath && (plan.financed > 0 || plan.levers.length > 0) && (
+        <div
+          style={{
+            borderTop: '1px dashed var(--border-input)',
+            paddingTop: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          <div
+            style={{fontSize: 11, fontWeight: 700, letterSpacing: '.8px', color: 'var(--muted)'}}
+          >
+            IF YOU LOCK THIS IN
+          </div>
+          {plan.financed > 0 && (
+            <div className="tnum" style={{fontSize: 12.5}}>
+              Costs {formatMoney(plan.totalCost)} in total — {formatMoney(plan.financed)} borrowed
+              {plan.interest > 0
+                ? ` plus ${formatMoney(plan.interest)} interest over ${Math.max(1, months)} mo`
+                : ' at no interest'}
+            </div>
+          )}
+          <div
+            className="tnum"
+            style={{
+              fontSize: 12.5,
+              color: plan.projection.effectivePerDay < 0 ? 'var(--danger)' : 'var(--ink)',
+            }}
+          >
+            Leaves {formatMoney(plan.projection.effectivePerDay)}/day to spend
+            {plan.projection.safe < 0
+              ? ` · ${formatMoney(-plan.projection.safe)} short before payday`
+              : ` · ${formatMoney(plan.projection.safe)} safe until payday`}
+          </div>
+          {!plan.sustainable && (
+            <div style={{fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.4}}>
+              ⚠ Your paycheck does not carry this — {formatMoney(-plan.projection.cycleSurplus)} a
+              cycle would come out of a balance nothing replaces, so the day above is negative.
+              {plan.minViableMonths != null
+                ? ` ${plan.minViableMonths} months is the shortest term that clears it.`
+                : ' No term inside five years clears it.'}
+            </div>
+          )}
+          {plan.promoCliff && (
+            <div style={{fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.4}}>
+              ⚠ The 0% promo covers {plan.promoCliff.covered} of these {Math.max(1, months)} months.
+              The last {plan.promoCliff.exposed} revert to {plan.promoCliff.reversionApr}% APR —
+              that reversion is already counted in the total above.
+            </div>
+          )}
         </div>
       )}
 

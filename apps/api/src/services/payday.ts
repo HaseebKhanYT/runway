@@ -48,6 +48,7 @@ export async function confirmPayday(userId: string, amount: number): Promise<voi
           behind: g.behind,
           financed: Number(g.financed),
           financedFrom: g.financedFrom,
+          earnMonthly: Number(g.earnMonthly),
         },
         profile.cadence as Cadence,
         today,
