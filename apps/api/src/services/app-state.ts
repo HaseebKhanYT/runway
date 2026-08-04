@@ -1,5 +1,5 @@
 import type {Account, Bill, Card, Category, Goal, Prisma, Profile, Txn} from '@prisma/client';
-import {midnight, MS_PER_DAY, type AppState, type Cadence, type CardReward} from '@runway/shared';
+import {midnight, MS_PER_DAY, parseCadence, type AppState, type CardReward} from '@runway/shared';
 import type {PrismaTx} from '../lib/db';
 import {prisma} from '../lib/db';
 
