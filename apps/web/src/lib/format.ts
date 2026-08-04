@@ -1,3 +1,21 @@
+import type {Cadence} from '@runway/shared';
+
+/**
+ * How each cadence is named to the user. Keyed by `Cadence` so a cadence the
+ * domain knows about cannot be missing from a picker: adding one to the union
+ * fails to compile here rather than quietly leaving the earners on it to pick
+ * the nearest wrong option (#67).
+ */
+export const CADENCE_LABELS: {[K in Cadence]: string} = {
+  weekly: 'Weekly',
+  biweekly: 'Every 2 weeks',
+  semimonthly: 'Twice a month',
+  monthly: 'Monthly',
+};
+
+/** The cadences in pickable order — shortest cycle first. */
+export const CADENCE_OPTIONS = Object.entries(CADENCE_LABELS) as [Cadence, string][];
+
 /** Money formatter — U+2212 minus sign per the design (catalog §3.9). */
 export function formatMoney(n: number, showCents = true): string {
   const neg = n < 0;

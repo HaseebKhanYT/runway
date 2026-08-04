@@ -1,5 +1,13 @@
 import {describe, expect, it} from 'vitest';
-import {formatShortDate, formatDayAmount, formatMoney, ordinalSuffix} from '../src/lib/format';
+import {cadenceSchema} from '@runway/shared';
+import {
+  CADENCE_LABELS,
+  CADENCE_OPTIONS,
+  formatShortDate,
+  formatDayAmount,
+  formatMoney,
+  ordinalSuffix,
+} from '../src/lib/format';
 
 describe('formatMoney', () => {
   it('formats with cents by default', () => {
@@ -31,6 +39,27 @@ describe('formatShortDate', () => {
     expect(formatShortDate(14, today)).toBe('Jul 30');
     expect(formatShortDate(0, today)).toBe('Jul 16');
     expect(formatShortDate(-6, today)).toBe('Jul 10');
+  });
+});
+
+describe('CADENCE_OPTIONS', () => {
+  it('offers every cadence the API will accept', () => {
+    // The pickers render this list, so a cadence missing here is a cadence the
+    // user cannot choose even though the server would store it (#67).
+    for (const [value] of CADENCE_OPTIONS) {
+      expect(cadenceSchema.safeParse(value).success).toBe(true);
+    }
+    expect(CADENCE_OPTIONS.map(([value]) => value)).toEqual([
+      'weekly',
+      'biweekly',
+      'semimonthly',
+      'monthly',
+    ]);
+  });
+
+  it('names semimonthly as something other than every 2 weeks', () => {
+    expect(CADENCE_LABELS.semimonthly).toBe('Twice a month');
+    expect(new Set(Object.values(CADENCE_LABELS)).size).toBe(CADENCE_OPTIONS.length);
   });
 });
 

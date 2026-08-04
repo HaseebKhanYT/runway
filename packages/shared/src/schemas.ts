@@ -1,14 +1,32 @@
 import {z} from 'zod';
-import {isCalendarDate, nextPayProblem} from './cycles';
+import {isCalendarDate, nextPayProblem, type Cadence} from './cycles';
 
 const money = z.number().finite();
 const isoDate = z.string().refine(isCalendarDate, 'expected a real calendar date, YYYY-MM-DD');
+
+/**
+ * The pay cadences, keyed by `Cadence` itself so the compiler owns the list.
+ * A fifth member of the union is a missing-key error here, and a key the union
+ * does not have is an excess-property error, so no schema can accept a
+ * different set of cadences than the math is written for. Onboarding used to
+ * spell out three of the four inline and a semimonthly earner had no way to
+ * say so (#67); nothing enumerates them by hand any more.
+ */
+const cadences: {[K in Cadence]: K} = {
+  weekly: 'weekly',
+  biweekly: 'biweekly',
+  semimonthly: 'semimonthly',
+  monthly: 'monthly',
+};
+
+/** The single wire contract for a cadence, shared by every schema that takes one. */
+export const cadenceSchema = z.nativeEnum(cadences);
 
 export const profilePatchSchema = z
   .object({
     name: z.string().max(120),
     email: z.string().max(200),
-    cadence: z.enum(['weekly', 'biweekly', 'semimonthly', 'monthly']),
+    cadence: cadenceSchema,
     nextPay: isoDate.nullable(),
     payAmount: money.nonnegative(),
     primaryName: z.string().max(120),
@@ -157,7 +175,7 @@ const onboardingCompleteFields = z.object({
    * than treating it as calm. Negative pay stays impossible.
    */
   pay: money.nonnegative(),
-  cadence: z.enum(['weekly', 'biweekly', 'monthly']),
+  cadence: cadenceSchema,
   nextPay: isoDate,
   name: z.string().max(120).optional(),
   email: z.string().max(200).optional(),

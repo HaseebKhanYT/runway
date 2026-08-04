@@ -2,7 +2,7 @@
 
 import {useUser} from '@clerk/nextjs';
 import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/shared';
-import {formatMoney, ordinalSuffix} from '../../lib/format';
+import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand-mark';
@@ -124,7 +124,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   const payScheduleLine = payDateProblem
     ? payDateProblem
     : nextPay
-      ? `${cadence === 'weekly' ? 'Weekly' : cadence === 'monthly' ? 'Monthly' : 'Every 2 weeks'} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
+      ? `${CADENCE_LABELS[cadence]} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
       : 'Pick the date your next paycheck lands so Runway can count down to it.';
 
   const stepCard = (heading: string, sub: string, body: React.ReactNode) => (
@@ -311,14 +311,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
               })}
               <div>
                 <div className={ui.label}>HOW OFTEN</div>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7}}>
-                  {(
-                    [
-                      ['weekly', 'Weekly'],
-                      ['biweekly', 'Every 2 weeks'],
-                      ['monthly', 'Monthly'],
-                    ] as [Cadence, string][]
-                  ).map(([value, label]) => (
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7}}>
+                  {CADENCE_OPTIONS.map(([value, label]) => (
                     <button
                       key={value}
                       className={cadence === value ? ui.chipActive : ui.chip}
