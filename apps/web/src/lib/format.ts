@@ -1,5 +1,9 @@
+/** Stand-in for a money figure we cannot render — U+2014 em dash. */
+const NO_AMOUNT = '$—';
+
 /** Money formatter — U+2212 minus sign per the design (catalog §3.9). */
 export function formatMoney(n: number, showCents = true): string {
+  if (!Number.isFinite(n)) return NO_AMOUNT;
   const neg = n < 0;
   const v = Math.abs(n);
   const s = showCents
@@ -8,9 +12,10 @@ export function formatMoney(n: number, showCents = true): string {
   return (neg ? '−$' : '$') + s;
 }
 
-/** Hero/sidebar day figure — ASCII hyphen, no cents, no separators. */
+/** Hero/sidebar day figure — ASCII hyphen, no cents, grouped thousands. */
 export function formatDayAmount(n: number): string {
-  return (n < 0 ? '-$' : '$') + Math.abs(n);
+  if (!Number.isFinite(n)) return NO_AMOUNT;
+  return (n < 0 ? '-$' : '$') + Math.round(Math.abs(n)).toLocaleString('en-US');
 }
 
 /** Short date from a day offset relative to `today`, e.g. "Jul 30". */
