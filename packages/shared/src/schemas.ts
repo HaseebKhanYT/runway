@@ -1,8 +1,8 @@
 import {z} from 'zod';
-import type {Cadence} from './cycles';
+import {isCalendarDate, nextPayProblem, type Cadence} from './cycles';
 
 const money = z.number().finite();
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const isoDate = z.string().refine(isCalendarDate, 'expected a real calendar date, YYYY-MM-DD');
 
 /**
  * The pay cadences, keyed by `Cadence` itself so the compiler owns the list.
@@ -166,9 +166,15 @@ export const plannerStartSchema = z.object({
   earnMonthly: money.nonnegative().default(0),
 });
 
-export const onboardingCompleteSchema = z.object({
+const onboardingCompleteFields = z.object({
   balance: money.nonnegative(),
-  pay: money.positive(),
+  /**
+   * Nonnegative, matching `profilePatchSchema.payAmount` — the two doors into
+   * the same column used to disagree (#85). A user between jobs has a real
+   * paycheck of zero to record, and the dashboard says so out loud rather
+   * than treating it as calm. Negative pay stays impossible.
+   */
+  pay: money.nonnegative(),
   cadence: cadenceSchema,
   nextPay: isoDate,
   name: z.string().max(120).optional(),
@@ -195,6 +201,18 @@ export const onboardingCompleteSchema = z.object({
       budget: money.nonnegative(),
     }),
   ),
+});
+
+/**
+ * Onboarding is the one payload that carries the cadence and the next payday
+ * together, so it is the one place the pair can be checked against each other.
+ * It is checked here rather than only in the browser because a `min`/`max` on
+ * a date input is a suggestion — the request behind it is what actually
+ * decides what the runway is computed from.
+ */
+export const onboardingCompleteSchema = onboardingCompleteFields.superRefine((body, ctx) => {
+  const problem = nextPayProblem(body.nextPay, body.cadence, new Date());
+  if (problem) ctx.addIssue({code: z.ZodIssueCode.custom, path: ['nextPay'], message: problem});
 });
 
 export const txnCategoryPatchSchema = z.object({

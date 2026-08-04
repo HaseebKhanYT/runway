@@ -1,7 +1,7 @@
 'use client';
 
 import {useUser} from '@clerk/nextjs';
-import {type Cadence} from '@runway/shared';
+import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/shared';
 import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
@@ -117,9 +117,15 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     }
   };
 
-  const payScheduleLine = nextPay
-    ? `${CADENCE_LABELS[cadence]} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
-    : 'Pick the date your next paycheck lands so Runway can count down to it.';
+  // The same rule the API enforces, so the form explains the refusal here
+  // instead of the request failing after five more steps of setup.
+  const today = new Date();
+  const payDateProblem = nextPay ? nextPayProblem(nextPay, cadence, today) : null;
+  const payScheduleLine = payDateProblem
+    ? payDateProblem
+    : nextPay
+      ? `${CADENCE_LABELS[cadence]} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
+      : 'Pick the date your next paycheck lands so Runway can count down to it.';
 
   const stepCard = (heading: string, sub: string, body: React.ReactNode) => (
     <div
@@ -301,7 +307,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
             'Your take-home pay after taxes. This sets how long your runway lasts.',
             <>
               {bigMoneyInput(payRaw, setPayRaw, '1,700', () => {
-                if (pay > 0 && nextPay) setStep(3);
+                if (pay > 0 && nextPay && !payDateProblem) setStep(3);
               })}
               <div>
                 <div className={ui.label}>HOW OFTEN</div>
@@ -324,15 +330,24 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   type="date"
                   className={ui.input}
                   value={nextPay}
+                  min={toIsoDate(today)}
+                  max={toIsoDate(today, maxDaysToPayday(cadence))}
+                  aria-invalid={payDateProblem !== null}
                   onChange={(e) => setNextPay(e.target.value)}
                 />
               </div>
-              <div style={{fontSize: 12, color: 'var(--muted)', lineHeight: 1.45}}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: payDateProblem ? 'var(--danger)' : 'var(--muted)',
+                  lineHeight: 1.45,
+                }}
+              >
                 {payScheduleLine}
               </div>
               <button
                 className={ui.btnPrimary}
-                disabled={!(pay > 0) || !nextPay}
+                disabled={!(pay > 0) || !nextPay || payDateProblem !== null}
                 onClick={() => setStep(3)}
               >
                 Next

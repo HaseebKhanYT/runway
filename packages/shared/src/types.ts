@@ -32,10 +32,12 @@ export interface Bill {
   name: string;
   amount: number;
   kind: BillKind;
-  /** ISO due date. */
+  /**
+   * ISO due date. The single source of truth for when this bill lands: a day
+   * offset is whatever the *reader* derives from this and its own clock, so
+   * the API deliberately does not send one.
+   */
   dueDate: string;
-  /** Days from today — derived server-side at read time. */
-  off: number;
   cycle: 'monthly' | 'yearly';
   paid: boolean;
   /** 'checking' | account id | card id. */

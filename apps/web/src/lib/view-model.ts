@@ -55,14 +55,26 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     cycleSurplus,
   } = runway;
 
+  // A paycheck of zero is a storable fact — someone between jobs has no income
+  // to record — so the dashboard has to be able to name it as the reason the
+  // per-day figure collapsed, rather than leaving the user to guess.
+  const noIncome = state.profile.payAmount <= 0;
+  // Zero per day is not a pace anyone can keep. It gets the same treatment as
+  // a negative one, in the colour and in the copy.
+  const stalled = effectivePerDay <= 0;
+
   const heroLabel = 'YOURS TO SPEND, EVERY DAY';
   const heroNumber = formatDayAmount(effectivePerDay) + '/day';
-  const heroColor = safe < 0 || overCommitted ? '#e58c5b' : '#f6f0e6';
+  const heroColor = safe < 0 || overCommitted || stalled ? '#e58c5b' : '#f6f0e6';
   let heroSub: string;
   if (safe < 0) {
     heroSub = "bills due before payday exceed your balance — let's look at the runway";
+  } else if (noIncome) {
+    heroSub = 'no paycheck on record — add what lands on payday in Settings';
   } else if (overCommitted) {
     heroSub = `your goals + bills need ${formatMoney(-cycleSurplus)} more than each paycheck brings in — stretch a goal timeline`;
+  } else if (stalled) {
+    heroSub = 'nothing left over after bills & goals';
   } else if (squeezed) {
     heroSub = `a pace that still works after payday — this cycle alone would allow ${formatDayAmount(thisCyclePerDay)}/day`;
   } else {
@@ -70,12 +82,16 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   }
 
   let perDaySub: string;
-  if (effectivePerDay >= 0) {
+  if (effectivePerDay > 0) {
     perDaySub = 'a pace that lasts past payday';
   } else if (safe < 0) {
     perDaySub = `${formatMoney(-safe)} short before payday — trim a bill or stretch a goal`;
-  } else {
+  } else if (noIncome) {
+    perDaySub = 'no paycheck on record — add one in Settings';
+  } else if (overCommitted) {
     perDaySub = `${formatMoney(-cycleSurplus)} short each paycheck — trim a bill or stretch a goal`;
+  } else {
+    perDaySub = 'nothing left over after bills & goals';
   }
 
   const setAside = state.goals
@@ -102,7 +118,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     heroColor,
     perDayF: formatDayAmount(effectivePerDay),
     perDaySub,
-    perDayColor: effectivePerDay < 0 ? '#c2542a' : '#29221a',
+    perDayColor: stalled ? '#c2542a' : '#29221a',
     paydayLabel: formatShortDate(daysToPayday, today),
     payAmountF: formatMoney(state.profile.payAmount),
     setAsideF: formatMoney(setAside),

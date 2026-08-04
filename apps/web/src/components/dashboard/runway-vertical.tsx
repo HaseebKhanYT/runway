@@ -1,6 +1,6 @@
 'use client';
 
-import {type AppState} from '@runway/shared';
+import {daysUntil, type AppState} from '@runway/shared';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {spineGap} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
@@ -18,8 +18,8 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
     off: number;
   }[] = [
     ...state.bills
-      .filter((b) => b.off >= 0)
-      .map((b) => ({kind: 'bill' as const, id: b.id, off: b.off})),
+      .map((b) => ({kind: 'bill' as const, id: b.id, off: daysUntil(b.dueDate, today)}))
+      .filter((b) => b.off >= 0),
     {kind: 'payday' as const, id: 'payday', off: daysToPayday},
   ].sort((a, b) => a.off - b.off || (a.kind === 'payday' ? 1 : -1));
 
@@ -154,7 +154,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                   {bill.name}
                 </span>
                 <span style={{display: 'block', fontSize: 11.5, color: 'var(--muted)'}}>
-                  due {formatShortDate(bill.off, today)}
+                  due {formatShortDate(daysUntil(bill.dueDate, today), today)}
                 </span>
               </span>
               <span
