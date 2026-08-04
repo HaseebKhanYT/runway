@@ -145,7 +145,6 @@ function bill(
     amount,
     kind,
     dueDate: iso(today, off),
-    off,
     cycle: 'monthly' as const,
     paid: false,
     payFrom: null,

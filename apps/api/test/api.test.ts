@@ -1,5 +1,6 @@
 import {
   computeRunway,
+  daysUntil,
   goalBehind,
   goalPerPaycheck,
   perPaycheckFor,
@@ -937,7 +938,7 @@ describe('planner', () => {
     expect(state.bills).toHaveLength(1);
 
     const runway = computeRunway(state, today);
-    expect(bill?.off).toBeLessThan(runway.daysToPayday);
+    expect(daysUntil(bill?.dueDate ?? '', today)).toBeLessThan(runway.daysToPayday);
     expect(runway.billsDueBeforePayday).toBe(667);
     // The number the issue says the user should see: $2,000 − one installment.
     expect(runway.safe).toBe(1333);
@@ -1003,6 +1004,37 @@ describe('planner', () => {
     const today = new Date();
     expect(goal.per).toBe(perPaycheckFor(4000, goal.due!, cadence, today));
     expect(goal.per).toBeLessThan(perPaycheckFor(6000, goal.due!, cadence, today));
+  });
+});
+
+describe('pay cadence', () => {
+  it('carries a whole month of bills on a monthly cycle', async () => {
+    await call('POST', '/reset-demo');
+    const {state} = await call('PATCH', '/profile', {cadence: 'monthly'});
+    expect(state.profile.cadence).toBe('monthly');
+
+    const billsMonthly = state.bills
+      .filter((b) => !b.oneTime && !b.personal)
+      .reduce((sum, b) => sum + (b.cycle === 'yearly' ? b.amount / 12 : b.amount), 0);
+    const r = computeRunway(state, new Date());
+    // One cycle is one month, so the month's bills and set-asides account for
+    // the whole paycheck with nothing left unexplained. Prorating 30 days
+    // against an average month of 30.44 used to leave 1.45% of the bills
+    // sitting in the surplus.
+    expect(r.cycleSurplus + r.setAside + billsMonthly).toBeCloseTo(state.profile.payAmount, 6);
+    await call('POST', '/reset-demo');
+  });
+
+  it('fails the request on a cadence the math cannot read', async () => {
+    await call('POST', '/reset-demo');
+    // The column is unconstrained text, so this is a state the Zod schemas
+    // cannot produce but the database can hold.
+    await prisma.profile.update({where: {userId: USER}, data: {cadence: 'fortnightly'}});
+    const res = await app.request('/me/state', {headers: {'x-dev-user': USER}});
+    expect(res.status).toBe(500);
+    await call('POST', '/reset-demo');
+    const {state} = await call('GET', '/me/state');
+    expect(state.profile.cadence).toBe('biweekly');
   });
 });
 

@@ -45,7 +45,6 @@ function roomyCard(s: AppState): AppState {
         amount: 25,
         kind: 'debt' as const,
         dueDate: '2026-07-21',
-        off: 5,
         cycle: 'monthly' as const,
         paid: false,
         payFrom: 'checking',

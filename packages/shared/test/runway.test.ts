@@ -1,17 +1,26 @@
 import {describe, expect, it} from 'vitest';
+import type {Cadence} from '../src/cycles';
 import {computeRunway} from '../src/runway';
 import type {AppState, Bill} from '../src/types';
 
 const TODAY = new Date('2026-07-16T12:00:00');
 
-function makeBill(partial: Partial<Bill>): Bill {
+/** ISO date `off` days after TODAY, in TODAY's own zone. */
+function dueIn(off: number): string {
+  const d = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + off);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** `off` is a convenience for the test's own clock; the bill only carries a date. */
+function makeBill({off, ...partial}: Partial<Bill> & {off?: number}): Bill {
   return {
     id: 'b1',
     name: 'Bill',
     amount: 100,
     kind: 'survival',
-    dueDate: '2026-07-19',
-    off: 3,
+    dueDate: dueIn(off ?? 3),
     cycle: 'monthly',
     paid: false,
     payFrom: null,
@@ -21,6 +30,17 @@ function makeBill(partial: Partial<Bill>): Bill {
     lender: null,
     ...partial,
   };
+}
+
+/** Run `fn` with the process pretending to sit in `tz`. */
+function inZone<T>(tz: string, fn: () => T): T {
+  const previous = process.env.TZ;
+  process.env.TZ = tz;
+  try {
+    return fn();
+  } finally {
+    process.env.TZ = previous;
+  }
 }
 
 function makeState(partial: Partial<AppState>): AppState {
@@ -155,6 +175,36 @@ describe('computeRunway', () => {
     // surplus = 100 - 183.97 = -83.97 -> sustainablePerDay -ceil(83.97/14) = -6
     expect(o.overCommitted).toBe(true);
     expect(o.sustainablePerDay).toBe(-6);
+  });
+
+  it('excludes a bill due exactly on payday, and includes the day before', () => {
+    const state = makeState({
+      profile: {...makeState({}).profile, nextPay: '2026-07-26'},
+      bills: [
+        makeBill({id: 'onPayday', amount: 100, dueDate: '2026-07-26'}),
+        makeBill({id: 'dayBefore', amount: 40, dueDate: '2026-07-25'}),
+      ],
+    });
+    const r = computeRunway(state, TODAY);
+    expect(r.daysToPayday).toBe(10);
+    expect(r.billsDueBeforePayday).toBe(40);
+  });
+
+  it('reads both halves of the pre-payday filter off the same clock in any zone', () => {
+    // One instant: 18:00 on 16 July in Los Angeles, already 17 July in UTC. The
+    // day counts differ by one between the zones, but the classification of a
+    // bill due on payday must not — that is the off-by-one in #84.
+    const instant = '2026-07-17T01:00:00Z';
+    const state = makeState({
+      profile: {...makeState({}).profile, nextPay: '2026-07-26'},
+      bills: [makeBill({id: 'onPayday', amount: 100, dueDate: '2026-07-26'})],
+    });
+    const la = inZone('America/Los_Angeles', () => computeRunway(state, new Date(instant)));
+    const utc = inZone('UTC', () => computeRunway(state, new Date(instant)));
+    expect(la.daysToPayday).toBe(10);
+    expect(utc.daysToPayday).toBe(9);
+    expect(la.billsDueBeforePayday).toBe(0);
+    expect(utc.billsDueBeforePayday).toBe(0);
   });
 
   it('paused and funded goals do not set aside', () => {

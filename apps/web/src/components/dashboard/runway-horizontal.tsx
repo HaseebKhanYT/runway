@@ -1,6 +1,6 @@
 'use client';
 
-import {type AppState} from '@runway/shared';
+import {daysUntil, type AppState} from '@runway/shared';
 import {useRef, useState} from 'react';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {layoutTimeline} from '../../lib/timeline';
@@ -14,7 +14,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
   const [fading, setFading] = useState<Set<string>>(new Set());
   const fadeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const {nodes} = layoutTimeline(state.bills, vm.runway.daysToPayday, fading);
+  const {nodes} = layoutTimeline(state.bills, vm.runway.daysToPayday, today, fading);
 
   const onBillClick = (billId: string) => {
     const bill = state.bills.find((b) => b.id === billId);
@@ -155,7 +155,8 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   {bill.name}
                 </div>
                 <div className="tnum" style={{fontSize: 11.5, color: 'var(--muted)'}}>
-                  {formatMoney(bill.amount)} · {formatShortDate(bill.off, today)}
+                  {formatMoney(bill.amount)} ·{' '}
+                  {formatShortDate(daysUntil(bill.dueDate, today), today)}
                 </div>
               </div>
               <button

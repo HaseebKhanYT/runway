@@ -1,4 +1,4 @@
-import {cycleDays, DAYS_PER_MONTH, daysUntil, type Cadence} from './cycles';
+import {cycleDays, cyclesPerMonth, DAYS_PER_MONTH, daysUntil, type Cadence} from './cycles';
 import type {Goal} from './types';
 
 export function round2(n: number): number {
@@ -55,7 +55,7 @@ export function goalPerMonth(g: Goal, cadence: Cadence, today: Date): number {
   if (remaining <= 0) return 0;
   const days = goalDays(g, today);
   if (days == null) {
-    return Math.min(remaining, Math.ceil((g.per || 0) * (DAYS_PER_MONTH / cycleDays(cadence))));
+    return Math.min(remaining, Math.ceil((g.per || 0) * cyclesPerMonth(cadence)));
   }
   const months = Math.max(1, Math.floor(days / DAYS_PER_MONTH));
   return Math.min(remaining, Math.ceil(remaining / months));
@@ -80,5 +80,5 @@ export function goalBarSplit(g: Goal): {finPct: number; payPct: number} {
 
 /** Monthly spare from the cycle surplus, rounded to the nearest $10. */
 export function spareMonthly(cycleSurplus: number, cadence: Cadence): number {
-  return Math.round((cycleSurplus * DAYS_PER_MONTH) / cycleDays(cadence) / 10) * 10;
+  return Math.round((cycleSurplus * cyclesPerMonth(cadence)) / 10) * 10;
 }
