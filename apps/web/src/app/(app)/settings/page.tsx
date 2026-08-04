@@ -1,8 +1,7 @@
 'use client';
 
 import {useClerk} from '@clerk/nextjs';
-import {type Cadence} from '@runway/shared';
-import {formatMoney} from '../../../lib/format';
+import {CADENCE_OPTIONS, formatMoney} from '../../../lib/format';
 import Link from 'next/link';
 import {useState, type ReactNode} from 'react';
 import {Onboarding} from '../../../components/onboarding/onboarding';
@@ -170,14 +169,10 @@ export default function SettingsPage() {
             'how often you get paid',
             <span style={{fontSize: 12, color: 'var(--muted)'}}>next {paydayLabel}</span>,
           )}
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7, marginTop: 10}}>
-            {(
-              [
-                ['weekly', 'Weekly'],
-                ['biweekly', 'Every 2 weeks'],
-                ['monthly', 'Monthly'],
-              ] as [Cadence, string][]
-            ).map(([value, label]) => (
+          <div
+            style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7, marginTop: 10}}
+          >
+            {CADENCE_OPTIONS.map(([value, label]) => (
               <button
                 key={value}
                 className={profile.cadence === value ? ui.chipActive : ui.chip}
