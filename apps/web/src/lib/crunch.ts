@@ -1,4 +1,5 @@
 import {
+  daysUntil,
   effectiveApr,
   goalPerPaycheck,
   pooledBalance,
@@ -48,14 +49,15 @@ export interface CrunchSummary {
 
 function breakingBill(state: AppState, runway: RunwaySummary, today: Date): Bill | null {
   let run = pooledBalance(state);
+  // Same clock as `runway.daysToPayday` was computed against, so this walks
+  // exactly the set of bills `computeRunway` subtracted.
   const preBills = state.bills
-    .filter((b) => !b.paid && b.off < runway.daysToPayday)
-    .sort((a, b) => a.off - b.off);
+    .filter((b) => !b.paid && daysUntil(b.dueDate, today) < runway.daysToPayday)
+    .sort((a, b) => daysUntil(a.dueDate, today) - daysUntil(b.dueDate, today));
   for (const b of preBills) {
     run -= b.amount;
     if (run < 0) return b;
   }
-  void today;
   return null;
 }
 
@@ -71,7 +73,7 @@ export function computeCrunch(
 
   const bill = on ? breakingBill(state, runway, today) : null;
   const billLine = bill
-    ? `Not enough for ${bill.name} (${formatMoney(bill.amount)}, due ${formatShortDate(bill.off, today)})`
+    ? `Not enough for ${bill.name} (${formatMoney(bill.amount)}, due ${formatShortDate(daysUntil(bill.dueDate, today), today)})`
     : 'Your set-asides put you under for this cycle';
 
   const cadence = state.profile.cadence;

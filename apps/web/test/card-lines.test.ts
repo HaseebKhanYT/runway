@@ -39,7 +39,6 @@ describe('cardLine', () => {
     amount: 160,
     kind: 'debt',
     dueDate: '2026-07-21',
-    off: 5,
     cycle: 'monthly',
     paid: false,
     payFrom: null,
