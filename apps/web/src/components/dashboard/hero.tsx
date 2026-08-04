@@ -31,6 +31,7 @@ export function Hero({vm}: {vm: ViewModel}) {
           letterSpacing: '-1.5px',
           lineHeight: 1.05,
           color: vm.heroColor,
+          overflowWrap: 'anywhere',
         }}
       >
         {vm.heroNumber}

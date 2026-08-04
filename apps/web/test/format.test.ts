@@ -22,14 +22,39 @@ describe('formatMoney', () => {
   it('formats zero', () => {
     expect(formatMoney(0)).toBe('$0.00');
   });
+  it('renders a placeholder for non-finite input', () => {
+    expect(formatMoney(NaN)).toBe('$—');
+    expect(formatMoney(Infinity)).toBe('$—');
+    expect(formatMoney(-Infinity)).toBe('$—');
+  });
+  it('renders a placeholder for non-finite input without cents', () => {
+    expect(formatMoney(NaN, false)).toBe('$—');
+    expect(formatMoney(Infinity, false)).toBe('$—');
+    expect(formatMoney(-Infinity, false)).toBe('$—');
+  });
 });
 
 describe('formatDayAmount', () => {
-  it('no cents, no separators', () => {
+  it('no cents', () => {
     expect(formatDayAmount(17)).toBe('$17');
   });
   it('ASCII hyphen for negatives', () => {
     expect(formatDayAmount(-4)).toBe('-$4');
+  });
+  it('groups thousands', () => {
+    expect(formatDayAmount(1234)).toBe('$1,234');
+  });
+  it('groups thousands for negatives', () => {
+    expect(formatDayAmount(-1234)).toBe('-$1,234');
+  });
+  it('rounds instead of showing decimals', () => {
+    expect(formatDayAmount(17.4)).toBe('$17');
+    expect(formatDayAmount(17.6)).toBe('$18');
+  });
+  it('renders a placeholder for non-finite input', () => {
+    expect(formatDayAmount(NaN)).toBe('$—');
+    expect(formatDayAmount(Infinity)).toBe('$—');
+    expect(formatDayAmount(-Infinity)).toBe('$—');
   });
 });
 
