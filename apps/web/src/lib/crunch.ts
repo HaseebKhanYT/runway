@@ -35,7 +35,11 @@ export interface CrunchSelection {
 export interface CrunchSummary {
   on: boolean;
   shortfall: number;
-  /** Which bill breaks the balance, or the set-asides line. */
+  /**
+   * Why the cycle is short, named after the first of `safe`'s three terms that
+   * accounts for it: an already-overdrawn balance, the bill whose subtraction
+   * crosses zero, or the set-asides.
+   */
   billLine: string;
   goalLevers: CrunchGoalLever[];
   cardLevers: CrunchCardLever[];
@@ -47,8 +51,29 @@ export interface CrunchSummary {
   gapColor: string;
 }
 
-function breakingBill(state: AppState, runway: RunwaySummary, today: Date): Bill | null {
-  let run = pooledBalance(state);
+/** Which of `safe`'s three terms put this cycle under (#90). */
+type CrunchCause =
+  {kind: 'balance'; balance: number} | {kind: 'bill'; bill: Bill} | {kind: 'setAside'};
+
+/**
+ * Classify a shortfall. `safe` is `balance − billsDueBeforePayday − setAside`
+ * and any of the three can drive it negative, so the panel has to say which
+ * one did rather than assume a bill and fall back to the goals.
+ *
+ * Priority is the order the money is spent in. An overdrawn balance comes
+ * first because the walk below starts from it: on a negative opening balance
+ * the very first bill would "cross" zero and take the blame for a hole that
+ * predates it.
+ *
+ * Only call this when `runway.safe < 0`. That is what makes the last arm
+ * sound: with `balance >= 0` and no bill crossing zero, `balance − bills >= 0`,
+ * so the set-asides are all that is left to have done it.
+ */
+function crunchCause(state: AppState, runway: RunwaySummary, today: Date): CrunchCause {
+  const balance = pooledBalance(state);
+  if (balance < 0) return {kind: 'balance', balance};
+
+  let run = balance;
   // Same clock as `runway.daysToPayday` was computed against, so this walks
   // exactly the set of bills `computeRunway` subtracted.
   const preBills = state.bills
@@ -56,9 +81,22 @@ function breakingBill(state: AppState, runway: RunwaySummary, today: Date): Bill
     .sort((a, b) => daysUntil(a.dueDate, today) - daysUntil(b.dueDate, today));
   for (const b of preBills) {
     run -= b.amount;
-    if (run < 0) return b;
+    if (run < 0) return {kind: 'bill', bill: b};
   }
-  return null;
+  return {kind: 'setAside'};
+}
+
+const SET_ASIDE_LINE = 'Your set-asides put you under for this cycle';
+
+function causeLine(cause: CrunchCause, today: Date): string {
+  switch (cause.kind) {
+    case 'balance':
+      return `Your balance is already ${formatMoney(-cause.balance)} below zero`;
+    case 'bill':
+      return `Not enough for ${cause.bill.name} (${formatMoney(cause.bill.amount)}, due ${formatShortDate(daysUntil(cause.bill.dueDate, today), today)})`;
+    case 'setAside':
+      return SET_ASIDE_LINE;
+  }
 }
 
 /** Cash-crunch panel math (catalog §3.8), cheapest-first lever ordering. */
@@ -71,10 +109,9 @@ export function computeCrunch(
   const on = runway.safe < 0;
   const short = on ? Math.ceil(-runway.safe) : 0;
 
-  const bill = on ? breakingBill(state, runway, today) : null;
-  const billLine = bill
-    ? `Not enough for ${bill.name} (${formatMoney(bill.amount)}, due ${formatShortDate(daysUntil(bill.dueDate, today), today)})`
-    : 'Your set-asides put you under for this cycle';
+  // Off, there is no cause to name; the field keeps the string it has always
+  // carried rather than becoming a second empty state for callers to handle.
+  const billLine = on ? causeLine(crunchCause(state, runway, today), today) : SET_ASIDE_LINE;
 
   const cadence = state.profile.cadence;
   const goalLevers: CrunchGoalLever[] = state.goals

@@ -36,4 +36,41 @@ describe('computeCrunch', () => {
     expect(crunch.gapLine).toMatch(/^Covered ✓ · /);
     expect(crunch.gapColor).toBe('#7fc79b');
   });
+
+  it('blames the balance when it is already overdrawn and nothing else is owed', () => {
+    const state = demoData(TODAY);
+    state.profile.primaryBalance = -120;
+    state.bills.forEach((b) => (b.paid = true));
+    state.goals = [];
+    const runway = computeRunway(state, TODAY);
+    const crunch = computeCrunch(state, runway, {pausedGoalIds: [], cardId: null}, TODAY);
+    expect(crunch.on).toBe(true);
+    // With no goals at all, the old fallback still said "set-asides" (#90).
+    expect(crunch.billLine).toBe('Your balance is already $120.00 below zero');
+    expect(crunch.billLine).not.toContain('set-asides');
+    for (const b of state.bills) expect(crunch.billLine).not.toContain(b.name);
+    expect(crunch.goalLevers).toEqual([]);
+  });
+
+  it('blames the balance, not the first bill, when overdrawn with bills still due', () => {
+    const state = demoData(TODAY);
+    state.profile.primaryBalance = -120;
+    const runway = computeRunway(state, TODAY);
+    const crunch = computeCrunch(state, runway, {pausedGoalIds: [], cardId: null}, TODAY);
+    expect(crunch.on).toBe(true);
+    // Rent is only the first bill the walk reaches; it broke nothing.
+    expect(crunch.billLine).toBe('Your balance is already $120.00 below zero');
+    expect(crunch.billLine).not.toContain('Not enough for Rent');
+  });
+
+  it('blames the set-asides when the balance covers every bill due before payday', () => {
+    const state = demoData(TODAY);
+    state.profile.primaryBalance = 100;
+    state.bills.forEach((b) => (b.paid = true));
+    const runway = computeRunway(state, TODAY);
+    const crunch = computeCrunch(state, runway, {pausedGoalIds: [], cardId: null}, TODAY);
+    expect(crunch.on).toBe(true);
+    expect(runway.setAside).toBeGreaterThan(0);
+    expect(crunch.billLine).toBe('Your set-asides put you under for this cycle');
+  });
 });
