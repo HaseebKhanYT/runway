@@ -1,4 +1,4 @@
-import {perPaycheckFor, type Cadence, type plannerStartSchema} from '@runway/shared';
+import {parseCadence, perPaycheckFor, type plannerStartSchema} from '@runway/shared';
 import type {z} from 'zod';
 import {prisma} from '../lib/db';
 import {syncCardBill} from './card-bill-sync';
@@ -70,7 +70,9 @@ export async function startPlan(userId: string, body: PlanStartInput): Promise<v
       // stored beside the date cannot disagree with the one computed from it
       // on a server whose clock is not UTC.
       due.toISOString().slice(0, 10),
-      (profile?.cadence ?? 'biweekly') as Cadence,
+      // A profile that does not exist yet has no cadence to disagree with, so
+      // it takes the default; one that exists has to mean something.
+      parseCadence(profile?.cadence ?? 'biweekly'),
       today,
     );
     await tx.goal.create({

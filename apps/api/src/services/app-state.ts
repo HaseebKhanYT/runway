@@ -3,8 +3,8 @@ import {
   daysUntil,
   midnight,
   MS_PER_DAY,
+  parseCadence,
   type AppState,
-  type Cadence,
   type CardReward,
 } from '@runway/shared';
 import type {PrismaTx} from '../lib/db';
@@ -79,7 +79,10 @@ function serializeState(rows: Rows, today: Date): AppState {
     profile: {
       name: profile.name,
       email: profile.email,
-      cadence: profile.cadence as Cadence,
+      // `Profile.cadence` is an unconstrained text column, so a cast here would
+      // hand the runway math a string it silently treats as biweekly. Parsing
+      // fails the request instead — wrong money is worse than no money.
+      cadence: parseCadence(profile.cadence),
       nextPay: isoDate(profile.nextPay),
       payAmount: toNumber(profile.payAmount),
       primaryName: profile.primaryName,
