@@ -1,4 +1,4 @@
-import {goalPerPaycheck, type Cadence} from '@runway/shared';
+import {goalPerPaycheck, parseCadence} from '@runway/shared';
 import {prisma} from '../lib/db';
 import {advanceCycle, parseIsoDateUtc} from '../lib/dates';
 import {syncCardBill} from './card-bill-sync';
@@ -8,6 +8,10 @@ export async function confirmPayday(userId: string, amount: number): Promise<voi
   const today = new Date();
   await prisma.$transaction(async (tx) => {
     const profile = await tx.profile.findUniqueOrThrow({where: {userId}});
+    // Parsed once, before anything is written: this transaction both funds
+    // goals per paycheck and rolls the payday forward by one cycle, and a
+    // cadence the math cannot read must stop it before either happens.
+    const cadence = parseCadence(profile.cadence);
     await tx.profile.update({
       where: {userId},
       data: {primaryBalance: {increment: amount}},
@@ -50,7 +54,7 @@ export async function confirmPayday(userId: string, amount: number): Promise<voi
           financedFrom: g.financedFrom,
           earnMonthly: Number(g.earnMonthly),
         },
-        profile.cadence as Cadence,
+        cadence,
         today,
       );
       const put = Math.min(per, target - saved, Math.max(0, balance));
@@ -87,7 +91,7 @@ export async function confirmPayday(userId: string, amount: number): Promise<voi
       const iso = profile.nextPay.toISOString().slice(0, 10);
       await tx.profile.update({
         where: {userId},
-        data: {nextPay: parseIsoDateUtc(advanceCycle(iso, profile.cadence))},
+        data: {nextPay: parseIsoDateUtc(advanceCycle(iso, cadence))},
       });
     }
     const cards = await tx.card.findMany({where: {userId}});

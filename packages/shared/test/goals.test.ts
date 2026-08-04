@@ -69,6 +69,11 @@ describe('goalPerMonth', () => {
     // ceil(40 * 30.44/14) = ceil(86.97) = 87
     expect(goalPerMonth(makeGoal({}), 'biweekly', TODAY)).toBe(87);
   });
+  it('leaves a monthly per alone — one paycheck a month is one', () => {
+    // Scaling by 30.44/30 used to round this up to 41.
+    expect(goalPerMonth(makeGoal({}), 'monthly', TODAY)).toBe(40);
+    expect(goalPerMonth(makeGoal({}), 'semimonthly', TODAY)).toBe(80);
+  });
   it('spreads remaining over months when due', () => {
     // 280 days -> months = floor(280/30.44) = 9; ceil(1540/9) = 172
     const goal = makeGoal({target: 2400, saved: 860, due: '2027-04-22'});
@@ -129,5 +134,11 @@ describe('spareMonthly', () => {
   it('scales cycle surplus to a month, nearest $10', () => {
     // 978.7 * 30.44/14 / 10 -> round(212.79) * 10 = 2130
     expect(spareMonthly(978.7, 'biweekly')).toBe(2130);
+  });
+  it('is the surplus itself for a monthly earner', () => {
+    // The month and the cycle are the same span, so there is nothing to
+    // scale. Dividing 30.44 by 30 used to inflate this to 1010.
+    expect(spareMonthly(1000, 'monthly')).toBe(1000);
+    expect(spareMonthly(1000, 'semimonthly')).toBe(2000);
   });
 });

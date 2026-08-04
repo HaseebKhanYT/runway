@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest';
+import type {Cadence} from '../src/cycles';
 import {computeRunway} from '../src/runway';
 import type {AppState, Bill} from '../src/types';
 
@@ -243,6 +244,48 @@ describe('computeRunway', () => {
     });
     void base;
     expect(computeRunway(state, TODAY).setAside).toBe(0);
+  });
+
+  it('charges a monthly earner a whole month of bills', () => {
+    const state = makeState({
+      profile: {
+        ...makeState({}).profile,
+        cadence: 'monthly',
+        payAmount: 4000,
+      },
+      bills: [
+        makeBill({id: 'rent', amount: 2000, off: 3, paid: true}),
+        makeBill({id: 'utilities', amount: 1000, off: 12, paid: true}),
+      ],
+    });
+    const r = computeRunway(state, TODAY);
+    expect(r.cycleLength).toBe(30);
+    // 4000 − 3000, exactly. Prorating by day charged 3000 × 30/30.44 = 2956.63
+    // and reported a surplus of 1043.37, so 33 read as 34.
+    expect(r.cycleSurplus).toBe(1000);
+    expect(r.sustainablePerDay).toBe(33);
+  });
+
+  it('splits a month of bills evenly across two semimonthly cycles', () => {
+    const state = makeState({
+      profile: {
+        ...makeState({}).profile,
+        cadence: 'semimonthly',
+        payAmount: 2000,
+      },
+      bills: [makeBill({id: 'rent', amount: 3000, off: 3, paid: true})],
+    });
+    const r = computeRunway(state, TODAY);
+    // Half a month per cycle, not 15/30.44 of one — 1500, not 1478.32.
+    expect(r.cycleSurplus).toBe(500);
+    expect(r.sustainablePerDay).toBe(33);
+  });
+
+  it('refuses an unrecognised cadence instead of reporting biweekly numbers', () => {
+    const state = makeState({
+      profile: {...makeState({}).profile, cadence: 'fortnightly' as Cadence},
+    });
+    expect(() => computeRunway(state, TODAY)).toThrow(/unknown pay cadence/);
   });
 
   it('accounts pool into the balance', () => {

@@ -1,4 +1,4 @@
-import {cycleDays, DAYS_PER_MONTH, daysUntil} from './cycles';
+import {cycleDays, cyclesPerMonth, daysUntil} from './cycles';
 import {goalPerPaycheck} from './goals';
 import {type AppState, type Goal} from './types';
 
@@ -32,7 +32,10 @@ function activeGoals(goals: Goal[]): Goal[] {
 
 /** The core formula (catalog §3.3), ported 1:1 from the design. */
 export function computeRunway(state: AppState, today: Date): RunwaySummary {
-  const cadence = state.profile.cadence || 'biweekly';
+  // No `|| 'biweekly'` here: the cadence is validated where state is built, and
+  // a fallback at this depth would turn a corrupt profile into confident
+  // biweekly numbers rather than an error.
+  const cadence = state.profile.cadence;
   const cycleLength = cycleDays(cadence);
 
   let daysToPayday: number = cycleLength;
@@ -64,7 +67,10 @@ export function computeRunway(state: AppState, today: Date): RunwaySummary {
   const billsMonthly = state.bills
     .filter((b) => !b.oneTime && !b.personal)
     .reduce((sum, b) => sum + (b.cycle === 'yearly' ? b.amount / 12 : b.amount), 0);
-  const billsPerCycle = (billsMonthly * cycleLength) / DAYS_PER_MONTH;
+  // A month of bills, split across the paychecks that month brings — not
+  // prorated by day, which for a calendar-anchored cadence charges the cycle
+  // 30 days out of a 30.44-day month and quietly forgives the rest.
+  const billsPerCycle = billsMonthly / cyclesPerMonth(cadence);
   const cycleSurplus = payAmt - billsPerCycle - setAside;
   const sustainablePerDay =
     cycleSurplus < 0
