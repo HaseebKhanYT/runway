@@ -3,7 +3,7 @@
 import {daysUntil, type AppState} from '@runway/shared';
 import {useRef, useState} from 'react';
 import {formatShortDate, formatMoney} from '../../lib/format';
-import {layoutTimeline} from '../../lib/timeline';
+import {billNodeLabel, layoutTimeline, paydayNodeLabel} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal-context';
 
@@ -72,6 +72,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
 
         {nodes.map((node) => {
           if (node.payday) {
+            const label = paydayNodeLabel(vm.payAmountF, vm.paydayLabel);
             return (
               <div
                 key="payday"
@@ -103,7 +104,8 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   )}
                 </div>
                 <button
-                  title="It landed? Tap to confirm"
+                  aria-label={label}
+                  title={label}
                   onClick={() => openModal('payday')}
                   style={{
                     width: 22,
@@ -121,6 +123,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
           const bill = state.bills.find((b) => b.id === node.id);
           if (!bill) return null;
           const isFading = fading.has(bill.id);
+          const label = billNodeLabel(bill, today);
           return (
             <div
               key={node.id}
@@ -160,7 +163,8 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                 </div>
               </div>
               <button
-                title="mark paid / unpaid"
+                aria-label={label}
+                title={label}
                 onClick={() => onBillClick(bill.id)}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.18)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}

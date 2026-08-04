@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import type {Bill} from '@runway/shared';
-import {layoutTimeline, spineGap} from '../src/lib/timeline';
+import {billNodeLabel, layoutTimeline, paydayNodeLabel, spineGap} from '../src/lib/timeline';
 
 const TODAY = new Date('2026-07-16T12:00:00');
 
@@ -61,6 +61,30 @@ describe('layoutTimeline', () => {
     const bills = Array.from({length: 10}, (_, i) => makeBill(`b${i}`, 13));
     const {nodes} = layoutTimeline(bills, 14, TODAY);
     expect(Math.max(...nodes.map((n) => n.pct))).toBeLessThanOrEqual(91.000001);
+  });
+});
+
+describe('billNodeLabel', () => {
+  it('names an unpaid bill by action, amount and due date', () => {
+    const bill = {...makeBill('b1', 5), name: 'Rent', amount: 1450};
+    expect(billNodeLabel(bill, TODAY)).toBe('Pay Rent, $1,450.00, due Jul 21');
+  });
+
+  it('promises no action for a paid bill fading off the rail', () => {
+    const bill = {...makeBill('b1', 5, true), name: 'Rent', amount: 1450};
+    expect(billNodeLabel(bill, TODAY)).toBe('Rent — paid, $1,450.00, Jul 21');
+  });
+
+  it('tells apart two bills sharing a name', () => {
+    const a = {...makeBill('b1', 2), name: 'Card A payment', amount: 120};
+    const b = {...makeBill('b2', 9), name: 'Card A payment', amount: 45};
+    expect(billNodeLabel(a, TODAY)).not.toBe(billNodeLabel(b, TODAY));
+  });
+});
+
+describe('paydayNodeLabel', () => {
+  it('states the action, the amount and the date', () => {
+    expect(paydayNodeLabel('$2,400.00', 'Aug 1')).toBe('Confirm payday, +$2,400.00 on Aug 1');
   });
 });
 

@@ -1,4 +1,5 @@
 import {daysUntil, type Bill} from '@runway/shared';
+import {formatMoney, formatShortDate} from './format';
 
 export interface TimelineNode {
   id: string;
@@ -54,6 +55,26 @@ export function layoutTimeline(
     for (const ev of events) ev.pct = 9 + (ev.pct - 9) * k;
   }
   return {nodes: events};
+}
+
+/**
+ * Accessible name for a bill's node on the rail. The dot's only content is a
+ * check glyph, so without this every node computes the same name. Amount and
+ * date belong in the name because two bills may share one.
+ */
+export function billNodeLabel(bill: Bill, today: Date): string {
+  const money = formatMoney(bill.amount);
+  const when = formatShortDate(daysUntil(bill.dueDate, today), today);
+  // A paid bill reaches the rail only while it fades, and the wrapper has
+  // already killed its pointer events — its name must promise no action.
+  return bill.paid
+    ? `${bill.name} — paid, ${money}, ${when}`
+    : `Pay ${bill.name}, ${money}, due ${when}`;
+}
+
+/** Accessible name for the payday node, whose dot has no content at all. */
+export function paydayNodeLabel(payAmountF: string, paydayLabel: string): string {
+  return `Confirm payday, +${payAmountF} on ${paydayLabel}`;
 }
 
 /** Mobile spine spacing: proportional to real day gaps, clamped (catalog §3.4). */
