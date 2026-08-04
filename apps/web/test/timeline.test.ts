@@ -2,14 +2,23 @@ import {describe, expect, it} from 'vitest';
 import type {Bill} from '@runway/shared';
 import {layoutTimeline, spineGap} from '../src/lib/timeline';
 
+const TODAY = new Date('2026-07-16T12:00:00');
+
+/** ISO date `off` days after TODAY — the rail derives offsets, so bills carry dates. */
+function dueIn(off: number): string {
+  const d = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + off);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 function makeBill(id: string, off: number, paid = false): Bill {
   return {
     id,
     name: id,
     amount: 100,
     kind: 'survival',
-    dueDate: '2026-07-19',
-    off,
+    dueDate: dueIn(off),
     cycle: 'monthly',
     paid,
     payFrom: null,
@@ -23,7 +32,7 @@ function makeBill(id: string, off: number, paid = false): Bill {
 describe('layoutTimeline', () => {
   it('positions nodes in 9..91, spaced, payday below and last on tie', () => {
     const bills = [3, 7, 8, 9, 11, 13].map((off, i) => makeBill(`b${i}`, off));
-    const {nodes} = layoutTimeline(bills, 14);
+    const {nodes} = layoutTimeline(bills, 14, TODAY);
     expect(nodes).toHaveLength(7);
     const payday = nodes[nodes.length - 1];
     expect(payday.payday).toBe(true);
@@ -44,13 +53,13 @@ describe('layoutTimeline', () => {
 
   it('excludes past and paid bills (unless fading)', () => {
     const bills = [makeBill('past', -2), makeBill('paid', 4, true), makeBill('due', 6)];
-    const {nodes} = layoutTimeline(bills, 14);
+    const {nodes} = layoutTimeline(bills, 14, TODAY);
     expect(nodes.map((n) => n.id)).toEqual(['due', 'payday']);
   });
 
   it('compresses crowded chains back into the rail', () => {
     const bills = Array.from({length: 10}, (_, i) => makeBill(`b${i}`, 13));
-    const {nodes} = layoutTimeline(bills, 14);
+    const {nodes} = layoutTimeline(bills, 14, TODAY);
     expect(Math.max(...nodes.map((n) => n.pct))).toBeLessThanOrEqual(91.000001);
   });
 });

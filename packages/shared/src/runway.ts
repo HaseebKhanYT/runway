@@ -43,8 +43,10 @@ export function computeRunway(state: AppState, today: Date): RunwaySummary {
 
   const unpaidBills = state.bills.filter((b) => !b.paid);
   // Only bills due BEFORE the next paycheck come out of today's balance;
-  // anything due on/after payday is covered by that incoming check.
-  const preBills = unpaidBills.filter((b) => b.off < daysToPayday);
+  // anything due on/after payday is covered by that incoming check. Both sides
+  // of this comparison are derived from the same `today`, so the rule stays
+  // strictly-before no matter whose clock `today` came from.
+  const preBills = unpaidBills.filter((b) => daysUntil(b.dueDate, today) < daysToPayday);
   const billsDueBeforePayday = preBills.reduce((sum, b) => sum + b.amount, 0);
 
   const setAside = activeGoals(state.goals).reduce(

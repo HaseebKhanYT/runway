@@ -1,5 +1,6 @@
 import {
   computeRunway,
+  daysUntil,
   goalBehind,
   goalPerPaycheck,
   perPaycheckFor,
@@ -891,7 +892,7 @@ describe('planner', () => {
     expect(state.bills).toHaveLength(1);
 
     const runway = computeRunway(state, today);
-    expect(bill?.off).toBeLessThan(runway.daysToPayday);
+    expect(daysUntil(bill?.dueDate ?? '', today)).toBeLessThan(runway.daysToPayday);
     expect(runway.billsDueBeforePayday).toBe(667);
     // The number the issue says the user should see: $2,000 − one installment.
     expect(runway.safe).toBe(1333);
