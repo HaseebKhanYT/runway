@@ -1,5 +1,6 @@
 import {Hono} from 'hono';
 import {cors} from 'hono/cors';
+import {isAllowedOrigin, originRules} from './lib/origins';
 import {authMiddleware} from './middleware/auth';
 import {ensureUser, loadState} from './services/app-state';
 import {accountsRoutes} from './routes/accounts';
@@ -19,19 +20,17 @@ import {transactionsRoutes} from './routes/transactions';
 export const app = new Hono();
 
 /**
- * Browser origins allowed to call this API. Set `WEB_ORIGIN` in production to
- * the deployed web URL (comma-separated for multiple, e.g. the apex domain and
- * a Vercel preview URL); defaults to the local dev server.
+ * Browser origins allowed to call this API: the exact origins in `WEB_ORIGIN`,
+ * plus anything matching a glob in `WEB_ORIGIN_PREVIEW`. Both are read once at
+ * boot, and `lib/origins.ts` documents why the second exists. With neither set,
+ * only the local dev web app is allowed.
  */
-const allowedOrigins = (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const rules = originRules(process.env);
 
 app.use(
   '*',
   cors({
-    origin: allowedOrigins,
+    origin: (origin) => (isAllowedOrigin(origin, rules) ? origin : null),
     allowHeaders: ['Authorization', 'Content-Type', 'x-dev-user'],
   }),
 );
