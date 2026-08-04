@@ -274,6 +274,321 @@ describe('cards', () => {
   });
 });
 
+describe('card payment settlement', () => {
+  /** A due day whose next occurrence is a few days out in any month. */
+  function soonDueDay(): number {
+    return ((new Date().getUTCDate() + 2) % 28) + 1;
+  }
+
+  /**
+   * A card carrying a three-month term plan. `cardUpsertSchema` does not
+   * expose the plan fields, so the only way to build one is to finance
+   * through the planner, as the product does.
+   *
+   * $300 over 3 months onto a $500 balance: installment ceil(300/3) = 100,
+   * balance 800, plan principal 300, revolving 500. The bill therefore asks
+   * 100 + the $250 stated minimum = $350 — more than one installment, which
+   * is the whole point of #102.
+   */
+  async function planCard(): Promise<{cardId: string; billId: string; state: AppState}> {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Plan Card',
+      apr: 20,
+      limit: 5000,
+      balance: 500,
+      dueDay: soonDueDay(),
+      minPay: 250,
+      payInFull: false,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Plan Card');
+    const {state} = await call('POST', '/planner/start', {
+      name: 'Sofa',
+      target: 300,
+      months: 3,
+      kind: 'necessity',
+      pausedIds: [],
+      cardId: card?.id,
+      financed: 300,
+    });
+    const planned = state.cards.find((c) => c.id === card?.id);
+    expect(planned?.balance).toBe(800);
+    expect(planned?.planInstallment).toBe(100);
+    expect(planned?.planMonthsLeft).toBe(3);
+    const bill = state.bills.find((b) => b.cardId === card?.id);
+    expect(bill?.amount).toBe(350);
+    return {cardId: card?.id ?? '', billId: bill?.id ?? '', state};
+  }
+
+  it('settles one month for a logged payment of the billed amount', async () => {
+    // #102: the manual door used to compute floor(350 / 100) and retire the
+    // entire three-month term for a payment that covered one installment.
+    const {cardId} = await planCard();
+    const {state} = await call('POST', `/cards/${cardId}/log-payment`, {
+      amount: 350,
+      source: 'checking',
+    });
+    const card = state.cards.find((c) => c.id === cardId);
+    expect(card?.planMonthsLeft).toBe(2);
+    expect(card?.balance).toBe(450);
+  });
+
+  it('reaches the same state through the bill as through the card', async () => {
+    // #102: the term must depend on how much was paid, not which button.
+    const {cardId, billId} = await planCard();
+    const {state} = await call('POST', `/bills/${billId}/pay`, {source: 'checking'});
+    const card = state.cards.find((c) => c.id === cardId);
+    expect(card?.planMonthsLeft).toBe(2);
+    expect(card?.balance).toBe(450);
+  });
+
+  it('keeps billing the plan after a logged payment', async () => {
+    // The consequence of over-settling: with the term gone, cardPaymentDue
+    // stops splitting the balance and the card reverts to its ordinary rule.
+    const {cardId} = await planCard();
+    await call('POST', `/cards/${cardId}/log-payment`, {amount: 350, source: 'checking'});
+    const {state} = await call('POST', '/payday/confirm', {amount: 1700});
+    const bill = state.bills.find((b) => b.cardId === cardId);
+    // Balance 450, two installments left: 100 + the $250 minimum on the rest.
+    expect(bill?.amount).toBe(350);
+    expect(bill?.paid).toBe(false);
+    expect(state.cards.find((c) => c.id === cardId)?.planMonthsLeft).toBe(2);
+  });
+
+  it('falls back to checking when the source matches nothing', async () => {
+    // #81: the card used to be credited while no cash moved at all, so
+    // repeating this cleared the card for free.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Ghost Source',
+      apr: 20,
+      limit: 5000,
+      balance: 500,
+      dueDay: soonDueDay(),
+      minPay: 100,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Ghost Source');
+    const cash = withCard.profile.primaryBalance;
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 200,
+      source: 'not-a-real-id',
+    });
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(300);
+    expect(state.profile.primaryBalance).toBe(cash - 200);
+  });
+
+  it('clamps a payment to the debt that exists', async () => {
+    // #81: an overpayment drove the balance negative, and syncCardBill then
+    // wrote a negative bill amount onto the runway.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Overpaid',
+      apr: 20,
+      limit: 5000,
+      balance: 150,
+      dueDay: soonDueDay(),
+      minPay: 100,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Overpaid');
+    const cash = withCard.profile.primaryBalance;
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 500,
+      source: 'checking',
+    });
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(0);
+    expect(state.profile.primaryBalance).toBe(cash - 150);
+    const bill = state.bills.find((b) => b.cardId === card?.id);
+    expect(bill?.amount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('labels the transaction with the account it came from', async () => {
+    // #81: the label was the hardcoded string 'Main checking'.
+    await call('POST', '/reset-demo');
+    await call('PATCH', '/profile', {primaryName: 'Ally Checking'});
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Labelled',
+      apr: 20,
+      limit: 5000,
+      balance: 500,
+      dueDay: soonDueDay(),
+      minPay: 100,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Labelled');
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 100,
+      source: 'checking',
+    });
+    expect(state.txns.find((t) => t.cardId === card?.id && t.amount === -100)?.src).toBe(
+      'Ally Checking',
+    );
+  });
+
+  it('debits a named account and leaves checking alone', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withAccount} = await call('POST', '/accounts', {
+      name: 'Savings',
+      type: 'savings',
+      balance: 1000,
+    });
+    const savings = withAccount.accounts.find((a) => a.name === 'Savings');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'From Savings',
+      apr: 20,
+      limit: 5000,
+      balance: 500,
+      dueDay: soonDueDay(),
+      minPay: 100,
+    });
+    const card = withCard.cards.find((c) => c.name === 'From Savings');
+    const cash = withCard.profile.primaryBalance;
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 200,
+      source: savings?.id,
+    });
+    expect(state.accounts.find((a) => a.id === savings?.id)?.balance).toBe(800);
+    expect(state.profile.primaryBalance).toBe(cash);
+    expect(state.txns.find((t) => t.cardId === card?.id && t.amount === -200)?.src).toBe('Savings');
+  });
+
+  it('moves the debt when one card pays another', async () => {
+    await call('POST', '/reset-demo');
+    const {state: before} = await call('GET', '/me/state');
+    const cardA = before.cards.find((c) => c.name === 'Card A');
+    const cardB = before.cards.find((c) => c.name === 'Card B');
+    const cash = before.profile.primaryBalance;
+    const {state} = await call('POST', `/cards/${cardA?.id}/log-payment`, {
+      amount: 100,
+      source: cardB?.id,
+    });
+    expect(state.cards.find((c) => c.id === cardA?.id)?.balance).toBe((cardA?.balance ?? 0) - 100);
+    expect(state.cards.find((c) => c.id === cardB?.id)?.balance).toBe((cardB?.balance ?? 0) + 100);
+    expect(state.profile.primaryBalance).toBe(cash);
+  });
+
+  it('marks the card bill paid when the logged payment covers it', async () => {
+    // #30: the runway kept subtracting a payment the user had already made.
+    // The pay-in-full case self-corrected, which is why the existing
+    // 'pay-in-full card keeps its bill pinned' test never caught this.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Minimum Payer',
+      apr: 20,
+      limit: 5000,
+      balance: 2000,
+      dueDay: soonDueDay(),
+      minPay: 160,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Minimum Payer');
+    expect(withCard.bills.find((b) => b.cardId === card?.id)?.amount).toBe(160);
+
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 160,
+      source: 'checking',
+    });
+    const bill = state.bills.find((b) => b.cardId === card?.id);
+    expect(bill?.paid).toBe(true);
+    expect(bill?.amount).toBe(160);
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(1840);
+  });
+
+  it('leaves the bill standing when the payment falls short', async () => {
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Part Payer',
+      apr: 20,
+      limit: 5000,
+      balance: 2000,
+      dueDay: soonDueDay(),
+      minPay: 160,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Part Payer');
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 50,
+      source: 'checking',
+    });
+    const bill = state.bills.find((b) => b.cardId === card?.id);
+    expect(bill?.paid).toBe(false);
+    expect(bill?.amount).toBe(160);
+  });
+
+  it('does not restate a paid bill down to zero', async () => {
+    // #106: syncCardBill rewrote the amount against the balance the payment
+    // had just zeroed, so a pay-in-full card read '$0 paid'.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Full Payer',
+      apr: 20,
+      limit: 5000,
+      balance: 250,
+      dueDay: soonDueDay(),
+      payInFull: true,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Full Payer');
+    expect(withCard.bills.find((b) => b.cardId === card?.id)?.amount).toBe(250);
+
+    const {state} = await call('POST', `/cards/${card?.id}/log-payment`, {
+      amount: 250,
+      source: 'checking',
+    });
+    const bill = state.bills.find((b) => b.cardId === card?.id);
+    expect(bill?.paid).toBe(true);
+    expect(bill?.amount).toBe(250);
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(0);
+  });
+
+  it('round-trips a pay-in-full card bill through pay and unpay', async () => {
+    // #106: undo reversed the rewritten amount, so the card kept its cleared
+    // balance and the cash was never given back. The $200 existed nowhere.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Round Trip',
+      apr: 20,
+      limit: 5000,
+      balance: 200,
+      dueDay: soonDueDay(),
+      payInFull: true,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Round Trip');
+    const bill = withCard.bills.find((b) => b.cardId === card?.id);
+    const cash = withCard.profile.primaryBalance;
+    expect(bill?.amount).toBe(200);
+
+    const {state: paid} = await call('POST', `/bills/${bill?.id}/pay`, {source: 'checking'});
+    expect(paid.cards.find((c) => c.id === card?.id)?.balance).toBe(0);
+    expect(paid.profile.primaryBalance).toBe(cash - 200);
+    expect(paid.bills.find((b) => b.id === bill?.id)?.amount).toBe(200);
+
+    const {state} = await call('POST', `/bills/${bill?.id}/unpay`);
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(200);
+    expect(state.profile.primaryBalance).toBe(cash);
+    const after = state.bills.find((b) => b.id === bill?.id);
+    expect(after?.amount).toBe(200);
+    expect(after?.paid).toBe(false);
+  });
+
+  it('refuses to pay a card bill with the card that owes it', async () => {
+    // #29: the balance fell by the bill and checking was debited too, so the
+    // user lost the money twice.
+    await call('POST', '/reset-demo');
+    const {state: withCard} = await call('POST', '/cards', {
+      name: 'Self Payer',
+      apr: 20,
+      limit: 5000,
+      balance: 500,
+      dueDay: soonDueDay(),
+      minPay: 100,
+    });
+    const card = withCard.cards.find((c) => c.name === 'Self Payer');
+    const bill = withCard.bills.find((b) => b.cardId === card?.id);
+    const cash = withCard.profile.primaryBalance;
+
+    const {state} = await call('POST', `/bills/${bill?.id}/pay`, {source: card?.id});
+    expect(state.cards.find((c) => c.id === card?.id)?.balance).toBe(500);
+    expect(state.profile.primaryBalance).toBe(cash);
+    expect(state.bills.find((b) => b.id === bill?.id)?.paid).toBe(false);
+  });
+});
+
 describe('transactions trash', () => {
   it('soft delete, restore, purge', async () => {
     await call('POST', '/reset-demo');
