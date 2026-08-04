@@ -150,7 +150,13 @@ export const plannerStartSchema = z.object({
 
 const onboardingCompleteFields = z.object({
   balance: money.nonnegative(),
-  pay: money.positive(),
+  /**
+   * Nonnegative, matching `profilePatchSchema.payAmount` — the two doors into
+   * the same column used to disagree (#85). A user between jobs has a real
+   * paycheck of zero to record, and the dashboard says so out loud rather
+   * than treating it as calm. Negative pay stays impossible.
+   */
+  pay: money.nonnegative(),
   cadence: z.enum(['weekly', 'biweekly', 'monthly']),
   nextPay: isoDate,
   name: z.string().max(120).optional(),

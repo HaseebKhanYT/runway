@@ -2,6 +2,12 @@ import {describe, expect, it} from 'vitest';
 import {toIsoDate} from '../src/cycles';
 import {onboardingCompleteSchema, profilePatchSchema} from '../src/schemas';
 
+/**
+ * A payload the onboarding door accepts, so each case varies only the field it
+ * is about. `nextPay` is written from the clock rather than hard-coded: a
+ * literal date would quietly turn into a date in the past, which is an
+ * unrelated reason for these cases to start failing.
+ */
 function onboarding(overrides: Record<string, unknown> = {}) {
   return {
     balance: 6000,
@@ -21,6 +27,23 @@ function nextPayError(body: Record<string, unknown>): string | undefined {
   if (result.success) return undefined;
   return result.error.issues.find((i) => i.path[0] === 'nextPay')?.message;
 }
+
+describe('the paycheck amount', () => {
+  it('accepts zero through the settings door', () => {
+    expect(profilePatchSchema.safeParse({payAmount: 0}).success).toBe(true);
+  });
+
+  it('accepts zero through the onboarding door as well', () => {
+    // The two doors write the same column and used to disagree (#85): a
+    // profile patch took zero and onboarding refused it.
+    expect(onboardingCompleteSchema.safeParse(onboarding({pay: 0})).success).toBe(true);
+  });
+
+  it('refuses a negative amount at both doors', () => {
+    expect(profilePatchSchema.safeParse({payAmount: -1}).success).toBe(false);
+    expect(onboardingCompleteSchema.safeParse(onboarding({pay: -1})).success).toBe(false);
+  });
+});
 
 describe('onboardingCompleteSchema', () => {
   it('accepts today and the far edge of the cycle', () => {
