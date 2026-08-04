@@ -1,5 +1,6 @@
 import {verifyToken} from '@clerk/backend';
 import type {Context, Next} from 'hono';
+import {authorizedPartiesFor, originRules} from '../lib/origins';
 
 declare module 'hono' {
   interface ContextVariableMap {
@@ -11,11 +12,13 @@ declare module 'hono' {
  * Origins permitted to mint the session tokens we accept. Passing these to
  * Clerk rejects a valid token issued for some other application, so a token
  * lifted from an unrelated Clerk app cannot be replayed against this API.
+ *
+ * The set is per-request rather than fixed, because a preview deployment's
+ * origin is only known once it calls: `lib/origins.ts` adds the calling origin
+ * when it matches a `WEB_ORIGIN_PREVIEW` glob, so Clerk still compares against
+ * exact strings and still rejects everything outside that shape.
  */
-const authorizedParties = (process.env.WEB_ORIGIN ?? '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const rules = originRules(process.env);
 
 /**
  * Clerk session verification. Outside production, `DEV_AUTH_BYPASS=1` allows an
@@ -36,6 +39,7 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
   if (!token) {
     return c.json({error: 'Unauthorized'}, 401);
   }
+  const authorizedParties = authorizedPartiesFor(c.req.header('origin'), rules);
   try {
     const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY ?? '',

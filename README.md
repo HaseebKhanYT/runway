@@ -151,6 +151,7 @@ pnpm dev                        # api :8787 + web :3000
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`               | `apps/web` | yes          | See keyless dev mode below                    |
 | `NEXT_PUBLIC_API_URL`                             | `apps/web` | deploys only | Which API a build talks to                    |
 | `WEB_ORIGIN`                                      | `apps/api` | deploys only | CORS allowlist; comma-separated               |
+| `WEB_ORIGIN_PREVIEW`                              | `apps/api` | staging only | Glob form of the same, for preview hostnames  |
 | `PORT`                                            | `apps/api` | no           | Defaults to `8787`                            |
 | `DEV_AUTH_BYPASS`                                 | `apps/api` | no           | Integration tests only; inert in production   |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL`                   | `apps/web` | no           | `/sign-in`                                    |
@@ -230,25 +231,23 @@ driven by branch:
 
 The staging URL is the Vercel branch alias for `develop`, which has the shape
 `https://runway-git-develop-<team-slug>.vercel.app` and sits behind Vercel's
-SSO gate. There is no custom domain for it and no DNS work. It is also, by
-construction, whatever staging's `WEB_ORIGIN` is set to: that is the only
-origin the staging API answers.
+SSO gate. There is no custom domain for it and no DNS work.
 
-**Open staging by that alias, not by a deployment URL.** Every deployment also
-gets a URL of its own, `https://runway-<hash>-<team-slug>.vercel.app`, and that
-is what GitHub's deployment links and the Vercel dashboard point at. Those URLs
-are not in `WEB_ORIGIN` and cannot be — a new one exists after every push — so
-opening one gives a shell that renders and then fails every API call. A
-successful build says nothing about which URL works. Pull request previews are
-rejected for the same reason.
+Every preview reaches the staging API, including pull request previews, and
+including the per-deployment hostname `https://runway-<hash>-<team-slug>
+.vercel.app` that GitHub's deployment links and the Vercel dashboard point at.
+That works because staging sets `WEB_ORIGIN_PREVIEW` to a glob,
+`https://runway-*-<team-slug>.vercel.app`, alongside the exact `WEB_ORIGIN`.
+The point is to be able to test a pull request on its own preview before
+merging it, which an exact list cannot support: a new deployment hostname
+exists after every push, so the origin a preview calls from does not exist when
+the variable is set.
 
-That is accepted rather than fixed, because it keeps `WEB_ORIGIN` a closed
-list, and the closed list is load-bearing beyond CORS: the same variable is the
-set of authorized parties for Clerk token verification (below). Staging runs on
-a Clerk **development** instance, which accepts arbitrary origins, so any page
-anywhere can mint a token with the publishable key and call staging; the
-allowlist is what rejects it. Widening `WEB_ORIGIN` to a pattern would mean
-splitting its two uses first, since `authorizedParties` takes exact origins.
+The glob is narrower than it looks. `*` matches within a single hostname label
+and never crosses a dot, so `https://runway-evil.attacker.com-<team-slug>
+.vercel.app` does not match, and only Vercel can serve a hostname of that shape
+— only for this project, under this team. Production sets no
+`WEB_ORIGIN_PREVIEW` at all and stays an exact list.
 
 ```bash
 pnpm build     # verify both production builds before deploying
@@ -266,12 +265,13 @@ own `runway` service, its own `Postgres`, its own private network and its own
 volume. `railway.json` at the repo root applies to both, so it supplies the
 build/start commands and the `/health` check and only variables differ:
 
-| Variable           | `production`                 | `staging`                          |
-| ------------------ | ---------------------------- | ---------------------------------- |
-| `DATABASE_URL`     | `${{Postgres.DATABASE_URL}}` | same reference, different database |
-| `CLERK_SECRET_KEY` | `sk_live_…`                  | `sk_test_…`                        |
-| `WEB_ORIGIN`       | the production web origin    | the Vercel `develop` branch alias  |
-| `NODE_ENV`         | `production`                 | `production`                       |
+| Variable             | `production`                 | `staging`                                 |
+| -------------------- | ---------------------------- | ----------------------------------------- |
+| `DATABASE_URL`       | `${{Postgres.DATABASE_URL}}` | same reference, different database        |
+| `CLERK_SECRET_KEY`   | `sk_live_…`                  | `sk_test_…`                               |
+| `WEB_ORIGIN`         | the production web origin    | the Vercel `develop` branch alias         |
+| `WEB_ORIGIN_PREVIEW` | unset                        | `https://runway-*-<team-slug>.vercel.app` |
+| `NODE_ENV`           | `production`                 | `production`                              |
 
 The `${{Postgres.DATABASE_URL}}` reference resolves per environment, so it needs
 no edit when the environment is duplicated.
@@ -286,8 +286,15 @@ reachable from the internet — staging should fail the same way production woul
 `WEB_ORIGIN` is required: it is both the CORS allowlist
 (`apps/api/src/app.ts`) and the set of authorized parties for Clerk token
 verification (`apps/api/src/middleware/auth.ts`), so a token minted for another
-application is rejected. Multiple origins are comma-separated. Both readers
-split the same string, so an edit widens both at once.
+application is rejected. Multiple origins are comma-separated.
+
+`WEB_ORIGIN_PREVIEW` extends both checks to hostnames that cannot be named in
+advance, and `apps/api/src/lib/origins.ts` is where the rules live. Clerk is
+still handed exact origins: the calling origin is added to the authorized
+parties for that one request, and only when it matches a glob. A token minted
+by a page anywhere else carries that origin as its `azp` and matches nothing,
+which matters here because the staging Clerk instance is a development
+instance and will sign users in from any origin at all.
 
 The start command runs `prisma migrate deploy` before booting, so schema
 changes apply on release.
