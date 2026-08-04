@@ -1,12 +1,22 @@
 import {describe, expect, it} from 'vitest';
 import {onboardingCompleteSchema, profilePatchSchema} from '../src/schemas';
 
+/**
+ * A payday a week out, written from the clock rather than hard-coded. Only
+ * `pay` is under test here, and a literal date would quietly turn into a date
+ * in the past — an unrelated reason for these cases to start failing.
+ */
+function inAWeek(): string {
+  const d = new Date(Date.now() + 7 * 86_400_000);
+  return d.toISOString().slice(0, 10);
+}
+
 /** A payload the onboarding door accepts, so each case varies only `pay`. */
 const onboarding = {
   balance: 500,
   pay: 2000,
   cadence: 'biweekly' as const,
-  nextPay: '2026-08-14',
+  nextPay: inAWeek(),
   bills: [],
   cards: [],
   cats: [],
