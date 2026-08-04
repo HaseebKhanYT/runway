@@ -3,6 +3,7 @@ import {
   goalBehind,
   goalPerPaycheck,
   perPaycheckFor,
+  toIsoDate,
   type AppState,
 } from '@runway/shared';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
@@ -668,6 +669,51 @@ describe('onboarding', () => {
     expect(state.cats).toHaveLength(3);
     expect(state.txns).toHaveLength(0);
     expect(state.goals).toHaveLength(0);
+  });
+
+  it('refuses a next payday the request claims is already behind us', async () => {
+    // #56: the browser's min/max is a suggestion; this is the boundary that
+    // decides what the runway is actually computed from.
+    const res = await app.request('/onboarding/complete', {
+      method: 'POST',
+      headers: {'x-dev-user': USER, 'content-type': 'application/json'},
+      body: JSON.stringify({
+        balance: 6000,
+        pay: 1700,
+        cadence: 'biweekly',
+        nextPay: toIsoDate(new Date(), -1),
+        bills: [],
+        cards: [],
+        cats: [],
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('refuses a next payday further out than one cycle', async () => {
+    const res = await app.request('/onboarding/complete', {
+      method: 'POST',
+      headers: {'x-dev-user': USER, 'content-type': 'application/json'},
+      body: JSON.stringify({
+        balance: 6000,
+        pay: 1700,
+        cadence: 'biweekly',
+        nextPay: toIsoDate(new Date(), 15),
+        bills: [],
+        cards: [],
+        cats: [],
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('refuses a date-shaped string that names no calendar day', async () => {
+    const res = await app.request('/profile', {
+      method: 'PATCH',
+      headers: {'x-dev-user': USER, 'content-type': 'application/json'},
+      body: JSON.stringify({nextPay: '2026-13-45'}),
+    });
+    expect(res.status).toBe(400);
   });
 });
 

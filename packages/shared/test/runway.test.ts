@@ -129,19 +129,20 @@ describe('computeRunway', () => {
     expect(r.sustainablePerDay).toBe(121);
   });
 
-  it('clamps daysToPayday into [1, cycleLength] and flags squeezed/overcommitted', () => {
+  it('honours a payday further out than one cycle and flags squeezed/overcommitted', () => {
     const squeezedState = makeState({
       profile: {
         ...makeState({}).profile,
         primaryBalance: 10000,
         payAmount: 500,
-        nextPay: '2026-08-30', // far out -> clamp to 14
+        nextPay: '2026-08-30', // 45 days out, not clamped down to 14
       },
       bills: [makeBill({amount: 400, off: 2})],
     });
     const r = computeRunway(squeezedState, TODAY);
-    expect(r.daysToPayday).toBe(14);
-    // thisCyclePerDay floor(9600/14)=685; billsMonthly 400 -> perCycle 183.97; surplus 316.03 -> 22
+    expect(r.daysToPayday).toBe(45);
+    // thisCyclePerDay floor(9600/45)=213; billsMonthly 400 -> perCycle 183.97; surplus 316.03 -> 22
+    expect(r.thisCyclePerDay).toBe(213);
     expect(r.sustainablePerDay).toBe(22);
     expect(r.effectivePerDay).toBe(22);
     expect(r.squeezed).toBe(true);
@@ -194,6 +195,34 @@ describe('computeRunway', () => {
     });
     void base;
     expect(computeRunway(state, TODAY).setAside).toBe(0);
+  });
+
+  it('a payday that has slipped into the past rolls the cycle over', () => {
+    // Regression for #56: yesterday's payday used to clamp to one day, which
+    // divided the whole balance by 1 and called it spendable today.
+    const state = makeState({
+      profile: {
+        ...makeState({}).profile,
+        primaryBalance: 6000,
+        nextPay: '2026-07-15', // yesterday
+      },
+    });
+    const r = computeRunway(state, TODAY);
+    expect(r.daysToPayday).toBe(13);
+    expect(r.thisCyclePerDay).toBe(461); // floor(6000/13), not 6000
+  });
+
+  it('a stale payday still excludes bills falling after the rolled-over date', () => {
+    const state = makeState({
+      profile: {...makeState({}).profile, nextPay: '2026-07-15'},
+      bills: [
+        makeBill({id: 'b1', amount: 100, off: 12}),
+        makeBill({id: 'b2', amount: 50, off: 13}),
+      ],
+    });
+    const r = computeRunway(state, TODAY);
+    expect(r.daysToPayday).toBe(13);
+    expect(r.billsDueBeforePayday).toBe(100);
   });
 
   it('accounts pool into the balance', () => {

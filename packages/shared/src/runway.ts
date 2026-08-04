@@ -1,4 +1,4 @@
-import {cycleDays, DAYS_PER_MONTH, daysUntil} from './cycles';
+import {cycleDays, DAYS_PER_MONTH, daysToNextPayday} from './cycles';
 import {goalPerPaycheck} from './goals';
 import {type AppState, type Goal} from './types';
 
@@ -9,7 +9,7 @@ export function pooledBalance(state: AppState): number {
 
 export interface RunwaySummary {
   cycleLength: number;
-  /** Days until the next paycheck, clamped to [1, cycleLength]. */
+  /** Days until the next paycheck — at least 1, and never clamped downwards. */
   daysToPayday: number;
   billsDueBeforePayday: number;
   setAside: number;
@@ -35,11 +35,9 @@ export function computeRunway(state: AppState, today: Date): RunwaySummary {
   const cadence = state.profile.cadence || 'biweekly';
   const cycleLength = cycleDays(cadence);
 
-  let daysToPayday: number = cycleLength;
-  if (state.profile.nextPay) {
-    const d = daysUntil(state.profile.nextPay, today);
-    if (Number.isFinite(d)) daysToPayday = Math.max(1, Math.min(cycleLength, d));
-  }
+  const daysToPayday: number = state.profile.nextPay
+    ? daysToNextPayday(state.profile.nextPay, cadence, today)
+    : cycleLength;
 
   const unpaidBills = state.bills.filter((b) => !b.paid);
   // Only bills due BEFORE the next paycheck come out of today's balance;
