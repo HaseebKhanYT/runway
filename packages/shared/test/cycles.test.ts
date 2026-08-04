@@ -1,12 +1,17 @@
 import {describe, expect, it} from 'vitest';
 import {
   cycleDays,
+  cyclesPerMonth,
+  DAYS_PER_MONTH,
   daysToNextPayday,
   daysUntil,
+  isCadence,
   isCalendarDate,
   maxDaysToPayday,
   nextPayProblem,
+  parseCadence,
   toIsoDate,
+  type Cadence,
 } from '../src/cycles';
 
 describe('cycleDays', () => {
