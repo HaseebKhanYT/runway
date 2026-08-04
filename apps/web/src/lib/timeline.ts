@@ -1,4 +1,4 @@
-import type {Bill} from '@runway/shared';
+import {daysUntil, type Bill} from '@runway/shared';
 
 export interface TimelineNode {
   id: string;
@@ -12,19 +12,24 @@ export interface TimelineNode {
  * Two-pass timeline layout (catalog §3.4): position by date along 9–91% of the
  * rail, push apart (7% any neighbour, 13% same side), then compress back if the
  * chain overran the rail. Payday sorts last on a tie and always sits below.
+ *
+ * Bill positions are derived from `today` — the same clock `daysToPayday` came
+ * from — so a bill and the payday marker can never be laid out a day apart.
  */
 export function layoutTimeline(
   bills: Bill[],
   daysToPayday: number,
+  today: Date,
   fadingIds: ReadonlySet<string> = new Set(),
 ): {nodes: TimelineNode[]} {
   const future = bills
-    .filter((b) => b.off >= 0 && (!b.paid || fadingIds.has(b.id)))
+    .map((b) => ({bill: b, off: daysUntil(b.dueDate, today)}))
+    .filter(({bill, off}) => off >= 0 && (!bill.paid || fadingIds.has(bill.id)))
     .sort((a, b) => a.off - b.off);
   const maxOff = Math.max(daysToPayday, ...future.map((b) => b.off), 1);
 
   const unsorted: TimelineNode[] = [
-    ...future.map((b): TimelineNode => ({id: b.id, off: b.off, pct: 0, side: 'above'})),
+    ...future.map(({bill, off}): TimelineNode => ({id: bill.id, off, pct: 0, side: 'above'})),
     {id: 'payday', off: daysToPayday, pct: 0, side: 'below', payday: true},
   ];
   const events = unsorted.sort((a, b) => a.off - b.off || (a.payday ? 1 : -1));

@@ -1,4 +1,4 @@
-import {cycleDays, DAYS_PER_MONTH, daysUntil} from './cycles';
+import {cycleDays, cyclesPerMonth, daysToNextPayday, daysUntil} from './cycles';
 import {goalPerPaycheck} from './goals';
 import {type AppState, type Goal} from './types';
 
@@ -9,7 +9,7 @@ export function pooledBalance(state: AppState): number {
 
 export interface RunwaySummary {
   cycleLength: number;
-  /** Days until the next paycheck, clamped to [1, cycleLength]. */
+  /** Days until the next paycheck — at least 1, and never clamped downwards. */
   daysToPayday: number;
   billsDueBeforePayday: number;
   setAside: number;
@@ -32,19 +32,22 @@ function activeGoals(goals: Goal[]): Goal[] {
 
 /** The core formula (catalog §3.3), ported 1:1 from the design. */
 export function computeRunway(state: AppState, today: Date): RunwaySummary {
-  const cadence = state.profile.cadence || 'biweekly';
+  // No `|| 'biweekly'` here: the cadence is validated where state is built, and
+  // a fallback at this depth would turn a corrupt profile into confident
+  // biweekly numbers rather than an error.
+  const cadence = state.profile.cadence;
   const cycleLength = cycleDays(cadence);
 
-  let daysToPayday: number = cycleLength;
-  if (state.profile.nextPay) {
-    const d = daysUntil(state.profile.nextPay, today);
-    if (Number.isFinite(d)) daysToPayday = Math.max(1, Math.min(cycleLength, d));
-  }
+  const daysToPayday: number = state.profile.nextPay
+    ? daysToNextPayday(state.profile.nextPay, cadence, today)
+    : cycleLength;
 
   const unpaidBills = state.bills.filter((b) => !b.paid);
   // Only bills due BEFORE the next paycheck come out of today's balance;
-  // anything due on/after payday is covered by that incoming check.
-  const preBills = unpaidBills.filter((b) => b.off < daysToPayday);
+  // anything due on/after payday is covered by that incoming check. Both sides
+  // of this comparison are derived from the same `today`, so the rule stays
+  // strictly-before no matter whose clock `today` came from.
+  const preBills = unpaidBills.filter((b) => daysUntil(b.dueDate, today) < daysToPayday);
   const billsDueBeforePayday = preBills.reduce((sum, b) => sum + b.amount, 0);
 
   const setAside = activeGoals(state.goals).reduce(
@@ -62,7 +65,10 @@ export function computeRunway(state: AppState, today: Date): RunwaySummary {
   const billsMonthly = state.bills
     .filter((b) => !b.oneTime && !b.personal)
     .reduce((sum, b) => sum + (b.cycle === 'yearly' ? b.amount / 12 : b.amount), 0);
-  const billsPerCycle = (billsMonthly * cycleLength) / DAYS_PER_MONTH;
+  // A month of bills, split across the paychecks that month brings — not
+  // prorated by day, which for a calendar-anchored cadence charges the cycle
+  // 30 days out of a 30.44-day month and quietly forgives the rest.
+  const billsPerCycle = billsMonthly / cyclesPerMonth(cadence);
   const cycleSurplus = payAmt - billsPerCycle - setAside;
   const sustainablePerDay =
     cycleSurplus < 0

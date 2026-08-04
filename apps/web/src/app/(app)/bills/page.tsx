@@ -1,6 +1,6 @@
 'use client';
 
-import {type AppState, type Bill, type BillKind} from '@runway/shared';
+import {daysUntil, type AppState, type Bill, type BillKind} from '@runway/shared';
 import {formatShortDate, formatMoney, ordinalSuffix} from '../../../lib/format';
 import {useState, type DragEvent, type TouchEvent} from 'react';
 import {useModals} from '../../../components/modals/modal-context';
@@ -222,7 +222,7 @@ function BillRow({
             )}
           </div>
           <div style={{fontSize: 12, color: 'var(--muted)'}}>
-            {bill.paid ? 'paid ✓' : `due ${formatShortDate(bill.off, today)}`}
+            {bill.paid ? 'paid ✓' : `due ${formatShortDate(daysUntil(bill.dueDate, today), today)}`}
           </div>
         </div>
         <span className="tnum" style={{fontSize: 15, fontWeight: 650}}>
