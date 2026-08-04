@@ -25,6 +25,18 @@ describe('buildViewModel', () => {
     expect(vm.acctChipTag).toBe('▾');
   });
 
+  it('does not offer the whole balance once the payday date has gone stale', () => {
+    // #56: a payday nobody confirmed slides into the past. The dashboard used
+    // to divide the balance by one day and print it as this cycle's pace.
+    const state = demoData(TODAY);
+    state.profile.nextPay = '2026-07-15'; // yesterday
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.daysToPay).toBe(13);
+    expect(vm.paydayLabel).not.toBe(vm.todayShort);
+    expect(vm.heroSub).not.toContain(vm.balanceF);
+    expect(vm.runway.thisCyclePerDay).toBeLessThan(vm.balance);
+  });
+
   it('renders crunch state', () => {
     const vm = buildViewModel(crunchState(), TODAY);
     expect(vm.runway.safe).toBeLessThan(0);
