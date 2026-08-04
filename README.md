@@ -228,12 +228,27 @@ driven by branch:
 | `develop` | Preview (branch alias) | `staging` environment            | Development    |
 | PR branch | Preview                | — (calls staging, CORS-rejected) | Development    |
 
-The staging URL is the Vercel branch alias for `develop`, behind Vercel's SSO
-gate. There is no custom domain for it and no DNS work.
+The staging URL is the Vercel branch alias for `develop`, which has the shape
+`https://runway-git-develop-<team-slug>.vercel.app` and sits behind Vercel's
+SSO gate. There is no custom domain for it and no DNS work. It is also, by
+construction, whatever staging's `WEB_ORIGIN` is set to: that is the only
+origin the staging API answers.
 
-Pull request previews build and render, but their API calls are rejected by the
-staging API's CORS allowlist, which only names the `develop` alias. That is
-accepted rather than fixed: it keeps `WEB_ORIGIN` a closed list.
+**Open staging by that alias, not by a deployment URL.** Every deployment also
+gets a URL of its own, `https://runway-<hash>-<team-slug>.vercel.app`, and that
+is what GitHub's deployment links and the Vercel dashboard point at. Those URLs
+are not in `WEB_ORIGIN` and cannot be — a new one exists after every push — so
+opening one gives a shell that renders and then fails every API call. A
+successful build says nothing about which URL works. Pull request previews are
+rejected for the same reason.
+
+That is accepted rather than fixed, because it keeps `WEB_ORIGIN` a closed
+list, and the closed list is load-bearing beyond CORS: the same variable is the
+set of authorized parties for Clerk token verification (below). Staging runs on
+a Clerk **development** instance, which accepts arbitrary origins, so any page
+anywhere can mint a token with the publishable key and call staging; the
+allowlist is what rejects it. Widening `WEB_ORIGIN` to a pattern would mean
+splitting its two uses first, since `authorizedParties` takes exact origins.
 
 ```bash
 pnpm build     # verify both production builds before deploying
@@ -268,9 +283,11 @@ reachable from the internet — staging should fail the same way production woul
 `PORT` is not set: Railway injects it and `apps/api/src/index.ts` reads
 `process.env.PORT ?? 8787`.
 
-`WEB_ORIGIN` is required: it is both the CORS allowlist and the set of
-authorized parties for Clerk token verification, so a token minted for another
-application is rejected. Multiple origins are comma-separated.
+`WEB_ORIGIN` is required: it is both the CORS allowlist
+(`apps/api/src/app.ts`) and the set of authorized parties for Clerk token
+verification (`apps/api/src/middleware/auth.ts`), so a token minted for another
+application is rejected. Multiple origins are comma-separated. Both readers
+split the same string, so an edit widens both at once.
 
 The start command runs `prisma migrate deploy` before booting, so schema
 changes apply on release.
