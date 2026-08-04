@@ -35,6 +35,15 @@ export async function adjustCashSource(
   source: ResolvedSource,
   delta: number,
 ): Promise<void> {
+  if (source.kind === 'card') {
+    // The contract stated in the comment above, enforced rather than assumed
+    // (#29). Silently returning is how #81 lost money: a debit that never
+    // happens looks exactly like a debit that did. Every caller runs inside
+    // `$transaction`, so throwing rolls the whole movement back instead of
+    // half-applying it. This is a tripwire — correct callers branch on
+    // `kind === 'card'` before they get here.
+    throw new Error(`adjustCashSource received a card source (${source.id})`);
+  }
   if (source.kind === 'account' && source.id) {
     await db.account.update({where: {id: source.id}, data: {balance: {increment: delta}}});
   } else {

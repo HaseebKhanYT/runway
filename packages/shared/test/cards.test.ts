@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
   cardPaymentDue,
+  cardPaymentSplit,
   effectiveApr,
   minPaymentGuess,
   payoffProjection,
@@ -181,5 +182,107 @@ describe('cardPaymentDue', () => {
     expect(cardPaymentDue(makeCard({balance: 1240, minPay: 160}), null)).toBe(160);
     expect(cardPaymentDue(makeCard({balance: 1240}), 95)).toBe(95);
     expect(cardPaymentDue(makeCard({balance: 1240}), null)).toBe(38);
+  });
+});
+
+describe('cardPaymentSplit', () => {
+  it('serves the revolving rule before the plan', () => {
+    // The #102 divergence. This card's bill asks $350: one $100 installment
+    // plus the $250 stated minimum on the $500 that is not plan principal.
+    // Reading it back by dividing the whole payment by the installment —
+    // floor(350/100) — retires three months for a payment that covered one.
+    const card = makeCard({balance: 800, planInstallment: 100, planMonthsLeft: 3, minPay: 250});
+    expect(cardPaymentDue(card, null)).toBe(350);
+    expect(cardPaymentSplit(card, 350)).toEqual({
+      revolvingPaid: 250,
+      planPaid: 100,
+      installments: 1,
+    });
+  });
+
+  it("settles exactly one month when handed the card's own bill", () => {
+    // The identity that makes the bill path need no special case: whatever
+    // the revolving rule contributes cancels, leaving one installment. It has
+    // to hold for every repayment rule and for the short final month.
+    const cards = [
+      makeCard({balance: 8500, payInFull: true, planInstallment: 667, planMonthsLeft: 12}),
+      makeCard({balance: 8500, minPay: 160, planInstallment: 667, planMonthsLeft: 12}),
+      makeCard({balance: 8500, planInstallment: 667, planMonthsLeft: 12}),
+      makeCard({balance: 800, minPay: 250, planInstallment: 100, planMonthsLeft: 3}),
+      makeCard({balance: 400, planInstallment: 667, planMonthsLeft: 1}),
+    ];
+    for (const card of cards) {
+      expect(cardPaymentSplit(card, cardPaymentDue(card, null)).installments).toBe(1);
+    }
+  });
+
+  it('settles a whole month for each installment paid up front', () => {
+    const card = makeCard({balance: 800, planInstallment: 100, planMonthsLeft: 3, minPay: 250});
+    // $250 of each payment is the revolving minimum; the rest is principal.
+    expect(cardPaymentSplit(card, 450).installments).toBe(2);
+    expect(cardPaymentSplit(card, 550).installments).toBe(3);
+  });
+
+  it('settles nothing when the payment does not clear an installment', () => {
+    const card = makeCard({balance: 800, planInstallment: 100, planMonthsLeft: 3, minPay: 250});
+    // Paying exactly the minimum leaves the plan untouched, and paying less
+    // than the minimum must not reach it either.
+    expect(cardPaymentSplit(card, 250).installments).toBe(0);
+    expect(cardPaymentSplit(card, 100).installments).toBe(0);
+  });
+
+  it('divides by the figure actually billed in the short final month', () => {
+    // The bill is $400 against a $667 installment, so dividing by the raw
+    // installment would settle nothing for the payment that finished the plan.
+    const last = makeCard({balance: 400, planInstallment: 667, planMonthsLeft: 1});
+    expect(cardPaymentSplit(last, 400).installments).toBe(1);
+  });
+
+  it('never settles more months than the term has left', () => {
+    const card = makeCard({balance: 800, planInstallment: 100, planMonthsLeft: 3, minPay: 250});
+    expect(cardPaymentSplit(card, 5000).installments).toBe(3);
+  });
+
+  it('leaves a card with no plan alone', () => {
+    expect(cardPaymentSplit(makeCard({balance: 1240, minPay: 160}), 160)).toEqual({
+      revolvingPaid: 160,
+      planPaid: 0,
+      installments: 0,
+    });
+    // A plan whose balance was corrected out from under it owns no principal.
+    expect(
+      cardPaymentSplit(makeCard({balance: 0, planInstallment: 100, planMonthsLeft: 3}), 100)
+        .installments,
+    ).toBe(0);
+  });
+
+  it('counts installments in whole cents', () => {
+    // Math.floor(30.15 / 10.05) is 2 in binary floating point, not 3, so a
+    // three-month prepayment would quietly settle two months.
+    const card = makeCard({balance: 30.15, planInstallment: 10.05, planMonthsLeft: 3});
+    expect(cardPaymentSplit(card, 30.15).installments).toBe(3);
+  });
+
+  it('retires the term exactly as the balance clears', () => {
+    // Walk the plan paying each bill as billed: the term must reach zero on
+    // the same month the debt does, neither early nor late.
+    let balance = 8500;
+    let monthsLeft = 12;
+    let months = 0;
+    while (monthsLeft > 0 && months < 20) {
+      const card = makeCard({
+        balance,
+        payInFull: true,
+        planInstallment: 667,
+        planMonthsLeft: monthsLeft,
+      });
+      const due = cardPaymentDue(card, null);
+      monthsLeft -= cardPaymentSplit(card, due).installments;
+      balance = round2(balance - due);
+      months += 1;
+    }
+    expect(months).toBe(12);
+    expect(balance).toBe(0);
+    expect(monthsLeft).toBe(0);
   });
 });

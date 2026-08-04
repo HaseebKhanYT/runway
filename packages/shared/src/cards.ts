@@ -33,6 +33,9 @@ export function minPaymentGuess(balance: number): number {
 
 type PlanFields = Pick<Card, 'balance' | 'planInstallment' | 'planMonthsLeft'>;
 
+/** Everything the payment rules read off a card, as plain numbers. */
+export type CardPaymentFields = PlanFields & Pick<Card, 'payInFull' | 'minPay'>;
+
 /**
  * The term-plan principal still outstanding on a card: what is left to pay,
  * capped by the balance carrying it. A statement correction can shrink the
@@ -45,6 +48,18 @@ export function planPrincipal(c: PlanFields): number {
 }
 
 /**
+ * What the card's own repayment rule asks for this month on the part of the
+ * balance that is not term-plan principal. Split out of `cardPaymentDue` so
+ * that writing a bill and reading a payment back use the same figure.
+ */
+function revolvingDue(c: CardPaymentFields, plan: number): number {
+  const revolving = round2(Math.max(0, c.balance) - plan);
+  if (revolving <= 0) return 0;
+  if (c.payInFull) return revolving;
+  return c.minPay != null ? c.minPay : minPaymentGuess(revolving);
+}
+
+/**
  * What a card asks for on its next due day: one installment of any term plan,
  * plus whatever repayment rule the card carries applied to the rest.
  *
@@ -54,7 +69,7 @@ export function planPrincipal(c: PlanFields): number {
  * balance keeps both halves honest on the same card.
  */
 export function cardPaymentDue(
-  c: PlanFields & Pick<Card, 'payInFull' | 'minPay'>,
+  c: CardPaymentFields,
   /** What the existing bill asks for, when nothing else determines it. */
   fallback: number | null,
 ): number {
@@ -62,19 +77,10 @@ export function cardPaymentDue(
 
   if (plan > 0) {
     const installment = Math.min(plan, Math.max(0, c.planInstallment));
-    const revolving = round2(Math.max(0, c.balance) - plan);
     // No `fallback` branch while a plan runs: the existing bill amount
     // already contains an installment, and reusing it would stack a second
     // one on top at every sync.
-    const revolvingDue =
-      revolving <= 0
-        ? 0
-        : c.payInFull
-          ? revolving
-          : c.minPay != null
-            ? c.minPay
-            : minPaymentGuess(revolving);
-    return round2(installment + revolvingDue);
+    return round2(installment + revolvingDue(c, plan));
   }
 
   return c.payInFull
@@ -84,6 +90,53 @@ export function cardPaymentDue(
       : fallback != null
         ? fallback
         : minPaymentGuess(c.balance);
+}
+
+/** Money in whole cents, so `floor` cannot lose a month to binary rounding. */
+function cents(n: number): number {
+  return Math.round(round2(n) * 100);
+}
+
+export interface CardPaymentSplit {
+  /** The part the card's ordinary rule claimed this month. */
+  revolvingPaid: number;
+  /** The part that landed on term-plan principal. */
+  planPaid: number;
+  /** Whole installments that principal cleared, capped by the term left. */
+  installments: number;
+}
+
+/**
+ * How a payment divides between a card's term plan and everything else.
+ *
+ * A card carrying a plan asks for `installment + revolvingDue` on its due day,
+ * so a payment has to be read back the same way round: the card's ordinary
+ * rule is served first, and only what is left over is plan principal.
+ * Dividing the whole payment by the installment counts the revolving minimum
+ * as principal and retires months nobody paid for (#102).
+ *
+ * The mirrored bill needs no special case. Feed this `cardPaymentDue(c, …)`
+ * and the revolving part cancels exactly, leaving one installment — one month,
+ * which is precisely what that bill contained.
+ */
+export function cardPaymentSplit(c: CardPaymentFields, amount: number): CardPaymentSplit {
+  const paid = Math.max(0, round2(amount));
+  const plan = planPrincipal(c);
+  // The same figure `cardPaymentDue` bills: `planInstallment` in an ordinary
+  // month, and whatever principal is left in the short final one. Dividing by
+  // the raw installment would settle nothing in that last month, because the
+  // bill is smaller than a full installment by then.
+  const installment = Math.min(plan, Math.max(0, c.planInstallment));
+  if (installment <= 0) return {revolvingPaid: paid, planPaid: 0, installments: 0};
+
+  const revolvingPaid = Math.min(paid, revolvingDue(c, plan));
+  const planPaid = round2(paid - revolvingPaid);
+  const months = Math.floor(cents(planPaid) / cents(installment));
+  return {
+    revolvingPaid,
+    planPaid,
+    installments: Math.min(Math.max(0, Math.floor(c.planMonthsLeft)), months),
+  };
 }
 
 interface RewardRule {
