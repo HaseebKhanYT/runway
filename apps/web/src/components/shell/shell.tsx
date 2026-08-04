@@ -118,7 +118,7 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
           flex: 1,
           minWidth: 0,
           padding: 'clamp(16px,3vw,32px)',
-          paddingBottom: 110,
+          paddingBottom: 150,
           maxWidth: 1180,
         }}
       >
@@ -157,7 +157,7 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
       </div>
 
       {isMobile && (
-        <>
+        <div className={styles.mobileBar}>
           <nav className={wideMobile ? styles.padNav : styles.phoneNav}>
             {NAV_VIEWS.map((v) => (
               <Link
@@ -178,7 +178,7 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
           >
             +
           </button>
-        </>
+        </div>
       )}
     </div>
   );
