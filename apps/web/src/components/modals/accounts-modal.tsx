@@ -2,7 +2,7 @@
 
 import {pooledBalance, type AccountType, type AppState} from '@runway/shared';
 import {formatMoney} from '../../lib/format';
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import ui from '../ui/ui.module.css';
 import {Modal, ModalTitle} from './modal';
@@ -54,10 +54,18 @@ export function AccountsModal({state}: {state: AppState}) {
   }));
   const removeAccount = useFlow<string>((id) => ({path: `/accounts/${id}`, method: 'DELETE'}));
 
+  const saveFlow = form?.isPrimary ? savePrimary : saveAccount;
+  const inFlight = useRef(false);
+
   const submit = () => {
-    if (!form || !form.name.trim()) return;
-    const flow = form.isPrimary ? savePrimary : saveAccount;
-    flow.mutate(form, {onSuccess: () => setForm(null)});
+    if (!form || !form.name.trim() || inFlight.current) return;
+    inFlight.current = true;
+    saveFlow.mutate(form, {
+      onSuccess: () => setForm(null),
+      onSettled: () => {
+        inFlight.current = false;
+      },
+    });
   };
 
   const iconTile = (type: AccountType, logo: string | null) => {
@@ -307,7 +315,7 @@ export function AccountsModal({state}: {state: AppState}) {
               <button
                 className={ui.btnPrimary}
                 style={{width: 'auto', padding: '9px 18px'}}
-                disabled={!form.name.trim()}
+                disabled={!form.name.trim() || saveFlow.isPending}
                 onClick={submit}
               >
                 {form.id ? 'Save changes' : 'Add account'}
