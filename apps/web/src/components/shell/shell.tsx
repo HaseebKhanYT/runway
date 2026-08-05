@@ -150,7 +150,7 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
               <span>{vm.balanceF}</span>
               <span style={{fontSize: 11.5, color: 'var(--muted)'}}>{vm.acctChipTag}</span>
             </button>
-            <div className={styles.paydayChip}>payday in {vm.daysToPay}d</div>
+            <div className={styles.paydayChip}>{vm.paydayChip}</div>
           </div>
         </div>
         {children}

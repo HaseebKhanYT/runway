@@ -156,27 +156,43 @@ export function nextPayProblem(nextPay: string, cadence: Cadence, today: Date): 
 }
 
 /**
- * Whole days from `today` to the next payday, given the date on file.
+ * Where the payday on file falls on the calendar, in whole days from `today` —
+ * so a payday that is today is `0`. This is the question every rendering of
+ * the date itself asks: which day to print, and how far away to call it.
  *
  * A stored payday only moves when the user confirms a paycheck landed, so it
  * slides into the past whenever they simply do not open the app. This function
  * reads that as the cycle having turned over — the paycheck came and the next
- * one is a cycle later — and rolls the date forward by whole cycles. Clamping
- * to one day instead, as this used to, divides the whole balance by a single
- * day and reports it as spendable today.
+ * one is a cycle later — and rolls the date forward by whole cycles rather than
+ * naming a day that has already gone. Clamping to one day instead, as this used
+ * to, also told `daysToNextPayday` to divide the whole balance by a single day
+ * and report it as spendable today.
  *
  * A payday further out than one cycle is returned as-is rather than clamped
  * down to `cycleDays`: if the money really is that far away it has to stretch
  * that far, and honouring the date can only ever lower the daily number, never
  * inflate it.
  */
-export function daysToNextPayday(nextPay: string, cadence: Cadence, today: Date): number {
+export function paydayOffset(nextPay: string, cadence: Cadence, today: Date): number {
   const cycleLength = cycleDays(cadence);
   const d = daysUntil(nextPay, today);
   if (!Number.isFinite(d)) return cycleLength;
-  // Payday today, not yet confirmed: the balance on screen does not include
-  // that paycheck, so today is still the only day it has to cover.
-  if (d >= 0) return Math.max(1, d);
+  if (d >= 0) return d;
   const intoCycle = ((d % cycleLength) + cycleLength) % cycleLength;
   return intoCycle === 0 ? cycleLength : intoCycle;
+}
+
+/**
+ * How many days the balance on screen has to cover before the next paycheck —
+ * the divisor under every per-day figure, which is why it is never less than
+ * one.
+ *
+ * That floor is the whole of the difference from `paydayOffset`, and it bites
+ * on exactly one input: a payday that is today and has not been confirmed. The
+ * balance on screen does not include that paycheck yet, so today is still a day
+ * it has to cover, and dividing a whole balance by no days at all would report
+ * all of it as spendable now.
+ */
+export function daysToNextPayday(nextPay: string, cadence: Cadence, today: Date): number {
+  return Math.max(1, paydayOffset(nextPay, cadence, today));
 }

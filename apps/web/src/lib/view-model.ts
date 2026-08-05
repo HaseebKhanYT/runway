@@ -1,6 +1,7 @@
 import {
   computeRunway,
   goalPerPaycheck,
+  paydayOffset,
   pooledBalance,
   type AppState,
   type RunwaySummary,
@@ -34,6 +35,7 @@ export interface ViewModel {
   perDaySub: string;
   perDayColor: string;
   paydayLabel: string;
+  paydayChip: string;
   payAmountF: string;
   setAsideF: string;
   unpaidBillCount: number;
@@ -54,6 +56,14 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     daysToPayday,
     cycleSurplus,
   } = runway;
+
+  // The date on the dashboard is a calendar question, not the divisor one:
+  // `daysToPayday` is floored to 1, so on an unconfirmed payday it names
+  // tomorrow. Mirror `computeRunway` when no date is stored — there the cycle
+  // length is the only answer either question has.
+  const paydayOff = state.profile.nextPay
+    ? paydayOffset(state.profile.nextPay, cadence, today)
+    : daysToPayday;
 
   // A paycheck of zero is a storable fact — someone between jobs has no income
   // to record — so the dashboard has to be able to name it as the reason the
@@ -110,7 +120,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
       day: 'numeric',
     }),
     todayShort: formatShortDate(0, today),
-    daysToPay: daysToPayday,
+    daysToPay: paydayOff,
     acctChipTag: extraCount === 0 ? '▾' : `· ${extraCount + 1}`,
     heroLabel,
     heroNumber,
@@ -119,7 +129,11 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     perDayF: formatDayAmount(effectivePerDay),
     perDaySub,
     perDayColor: stalled ? '#c2542a' : '#29221a',
-    paydayLabel: formatShortDate(daysToPayday, today),
+    paydayLabel: formatShortDate(paydayOff, today),
+    // The chip's wording is built here rather than in the shell because
+    // `payday in 0d` is not a phrase, and `apps/web` has no component test
+    // harness — this is the only place a test can read the string.
+    paydayChip: paydayOff === 0 ? 'payday today' : `payday in ${paydayOff}d`,
     payAmountF: formatMoney(state.profile.payAmount),
     setAsideF: formatMoney(setAside),
     unpaidBillCount: state.bills.filter((b) => !b.paid).length,

@@ -50,6 +50,34 @@ describe('buildViewModel', () => {
     expect(vm.runway.thisCyclePerDay).toBeLessThan(vm.balance);
   });
 
+  it('prints today, not tomorrow, when the payday on file is today', () => {
+    // #154: the dashboard was reusing the divisor — floored to 1 so an
+    // unconfirmed paycheck never divides the balance by no days — as the
+    // calendar offset of the date, so every surface named tomorrow while
+    // Settings named today.
+    const state = demoData(TODAY);
+    state.profile.nextPay = '2026-07-16'; // today
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.paydayLabel).toBe(vm.todayShort);
+    expect(vm.daysToPay).toBe(0);
+    expect(vm.paydayChip).toBe('payday today');
+    // The floor survives where it belongs: the balance still has to cover today.
+    expect(vm.runway.daysToPayday).toBe(1);
+  });
+
+  it('still counts a future payday down, and falls back to the cycle length', () => {
+    const future = buildViewModel(demoData(TODAY), TODAY); // seeded 14 days out
+    expect(future.daysToPay).toBe(14);
+    expect(future.paydayChip).toBe('payday in 14d');
+    expect(future.paydayLabel).not.toBe(future.todayShort);
+
+    const state = demoData(TODAY);
+    state.profile.nextPay = '';
+    const undated = buildViewModel(state, TODAY);
+    expect(undated.daysToPay).toBe(14);
+    expect(undated.paydayChip).toBe('payday in 14d');
+  });
+
   it('renders crunch state', () => {
     const vm = buildViewModel(crunchState(), TODAY);
     expect(vm.runway.safe).toBeLessThan(0);
