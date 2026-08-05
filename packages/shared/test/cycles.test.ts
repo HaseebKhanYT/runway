@@ -10,6 +10,7 @@ import {
   maxDaysToPayday,
   nextPayProblem,
   parseCadence,
+  paydayOffset,
   toIsoDate,
   type Cadence,
 } from '../src/cycles';
@@ -183,5 +184,33 @@ describe('daysToNextPayday', () => {
 
   it('falls back to the cycle length when the date cannot be parsed', () => {
     expect(daysToNextPayday('2026-13-45', 'biweekly', today)).toBe(14);
+  });
+});
+
+describe('paydayOffset', () => {
+  const today = new Date('2026-07-16T12:00:00');
+
+  it('is zero on the payday itself, where the divisor is one', () => {
+    // #154: the date the dashboard prints is a calendar fact, so a payday
+    // stored as today is today — the floor belongs to the divisor alone.
+    expect(paydayOffset('2026-07-16', 'biweekly', today)).toBe(0);
+    expect(daysToNextPayday('2026-07-16', 'biweekly', today)).toBe(1);
+  });
+
+  it('counts a future payday exactly', () => {
+    expect(paydayOffset('2026-07-26', 'biweekly', today)).toBe(10);
+  });
+
+  it('honours a payday further out than one cycle instead of clamping it', () => {
+    expect(paydayOffset('2026-08-27', 'monthly', today)).toBe(42);
+  });
+
+  it('rolls a stale payday forward by whole cycles', () => {
+    expect(paydayOffset('2026-07-15', 'biweekly', today)).toBe(13);
+    expect(paydayOffset('2026-07-02', 'biweekly', today)).toBe(14); // exactly one cycle ago
+  });
+
+  it('falls back to the cycle length when the date cannot be parsed', () => {
+    expect(paydayOffset('2026-13-45', 'biweekly', today)).toBe(14);
   });
 });
