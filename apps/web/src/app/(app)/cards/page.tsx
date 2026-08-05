@@ -1,29 +1,13 @@
 'use client';
 
-import {daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
+import {daysUntil, type AppState, type Card} from '@runway/shared';
 import {formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';
 import {cardLine, rewardPillColors} from '../../../lib/card-lines';
+import {cardPayload, type CardForm} from '../../../lib/card-form';
 import {useAppState, useFlow} from '../../../lib/queries';
-
-interface CardForm {
-  cardId: string | null;
-  name: string;
-  aprRaw: string;
-  limitRaw: string;
-  balanceRaw: string;
-  dueRaw: string;
-  minPayRaw: string;
-  payInFull: boolean;
-  rewards: CardReward[];
-  rewardRateRaw: string;
-  rewardCatRaw: string;
-  promoOn: boolean;
-  promoAprRaw: string;
-  promoMonthsRaw: string;
-}
 
 function emptyForm(): CardForm {
   return {
@@ -32,6 +16,7 @@ function emptyForm(): CardForm {
     aprRaw: '',
     limitRaw: '',
     balanceRaw: '',
+    balanceTouched: false,
     dueRaw: '',
     minPayRaw: '',
     payInFull: false,
@@ -54,6 +39,7 @@ function formFromCard(card: Card, today: Date): CardForm {
     aprRaw: String(card.apr),
     limitRaw: String(card.limit),
     balanceRaw: String(card.balance),
+    balanceTouched: false,
     dueRaw: card.dueDay != null ? String(card.dueDay) : '',
     minPayRaw: card.minPay != null ? String(card.minPay) : '',
     payInFull: card.payInFull,
@@ -316,18 +302,7 @@ export default function CardsPage() {
   const save = useFlow<CardForm>((f) => ({
     path: f.cardId ? `/cards/${f.cardId}` : '/cards',
     method: f.cardId ? 'PATCH' : 'POST',
-    json: {
-      name: f.name.trim(),
-      apr: parseFloat(f.aprRaw) || 0,
-      limit: parseFloat(f.limitRaw) || 0,
-      balance: parseFloat(f.balanceRaw) || 0,
-      dueDay: f.dueRaw ? Math.min(31, Math.max(1, parseInt(f.dueRaw, 10))) : null,
-      minPay: f.payInFull ? null : f.minPayRaw ? parseFloat(f.minPayRaw) : null,
-      payInFull: f.payInFull,
-      rewards: f.rewards,
-      promoRate: f.promoOn ? parseFloat(f.promoAprRaw) || 0 : null,
-      promoMonths: f.promoOn && f.promoMonthsRaw ? parseInt(f.promoMonthsRaw, 10) : null,
-    },
+    json: cardPayload(f),
   }));
 
   if (!state) return null;
@@ -489,7 +464,11 @@ export default function CardsPage() {
                 placeholder="$ balance"
                 value={form.balanceRaw}
                 onChange={(e) =>
-                  setForm({...form, balanceRaw: e.target.value.replace(/[^0-9.]/g, '')})
+                  setForm({
+                    ...form,
+                    balanceRaw: e.target.value.replace(/[^0-9.]/g, ''),
+                    balanceTouched: true,
+                  })
                 }
               />
             </div>
