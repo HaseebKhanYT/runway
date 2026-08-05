@@ -2,6 +2,7 @@
 
 import {useClerk} from '@clerk/nextjs';
 import {CADENCE_OPTIONS, formatMoney} from '../../../lib/format';
+import {parseMoneyInput} from '../../../lib/money-input';
 import Link from 'next/link';
 import {useState, type ReactNode} from 'react';
 import {Onboarding} from '../../../components/onboarding/onboarding';
@@ -44,6 +45,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [balanceRaw, setBalanceRaw] = useState<string | null>(null);
   const [payRaw, setPayRaw] = useState<string | null>(null);
+  const [balanceProblem, setBalanceProblem] = useState<string | null>(null);
+  const [payProblem, setPayProblem] = useState<string | null>(null);
 
   if (!state) return null;
   if (rerunSetup) return <Onboarding onExit={() => setRerunSetup(false)} />;
@@ -72,15 +75,43 @@ export default function SettingsPage() {
       })
     : '—';
 
-  const settingRow = (label: string, sub: string, control: ReactNode) => (
+  const settingRow = (label: string, sub: string, control: ReactNode, problem?: string | null) => (
     <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{fontSize: 13.5, fontWeight: 650}}>{label}</div>
-        <div style={{fontSize: 11.5, color: 'var(--muted)'}}>{sub}</div>
+        <div style={{fontSize: 11.5, color: problem ? 'var(--danger)' : 'var(--muted)'}}>
+          {problem ?? sub}
+        </div>
       </div>
       {control}
     </div>
   );
+
+  // These fields commit on blur, so neither an emptied nor a garbled one is a
+  // request to store zero — leave the stored figure alone and say so (#145).
+  const commitMoney = (
+    raw: string | null,
+    field: 'primaryBalance' | 'payAmount',
+    allowNegative: boolean,
+    setRaw: (raw: string | null) => void,
+    setProblem: (problem: string | null) => void,
+  ) => {
+    if (raw === null) return;
+    const parsed = parseMoneyInput(raw, {allowNegative});
+    if (parsed.status === 'blank') {
+      // Drop back to the stored value rather than leaving an empty box.
+      setRaw(null);
+      setProblem(null);
+      return;
+    }
+    if (parsed.status === 'invalid') {
+      // Keep the text on screen: the user has to see it to fix it.
+      setProblem(parsed.message);
+      return;
+    }
+    setProblem(null);
+    patchProfile.mutate({[field]: parsed.value});
+  };
 
   return (
     <div style={{columns: '340px', columnGap: 16}}>
@@ -137,14 +168,18 @@ export default function SettingsPage() {
               className={`${ui.input} tnum`}
               style={{width: 110}}
               inputMode="decimal"
+              aria-invalid={balanceProblem !== null}
               value={balanceRaw ?? String(profile.primaryBalance)}
-              onChange={(e) => setBalanceRaw(e.target.value.replace(/[^0-9.\-]/g, ''))}
+              onChange={(e) => {
+                setBalanceRaw(e.target.value.replace(/[^0-9.\-]/g, ''));
+                setBalanceProblem(null);
+              }}
               onBlur={() =>
-                balanceRaw !== null &&
-                patchProfile.mutate({primaryBalance: parseFloat(balanceRaw) || 0})
+                commitMoney(balanceRaw, 'primaryBalance', true, setBalanceRaw, setBalanceProblem)
               }
             />
           </div>,
+          balanceProblem,
         )}
         {settingRow(
           'Paycheck amount',
@@ -155,13 +190,19 @@ export default function SettingsPage() {
               className={`${ui.input} tnum`}
               style={{width: 110}}
               inputMode="decimal"
+              aria-invalid={payProblem !== null}
               value={payRaw ?? String(profile.payAmount)}
-              onChange={(e) => setPayRaw(e.target.value.replace(/[^0-9.]/g, ''))}
-              onBlur={() =>
-                payRaw !== null && patchProfile.mutate({payAmount: parseFloat(payRaw) || 0})
-              }
+              // Same filter as the balance above: stripping `-` mid-string
+              // turned `1-2` into `12`, a figure nobody typed. Let it through
+              // and refuse it visibly on blur instead.
+              onChange={(e) => {
+                setPayRaw(e.target.value.replace(/[^0-9.\-]/g, ''));
+                setPayProblem(null);
+              }}
+              onBlur={() => commitMoney(payRaw, 'payAmount', false, setPayRaw, setPayProblem)}
             />
           </div>,
+          payProblem,
         )}
         <div>
           {settingRow(
