@@ -65,7 +65,7 @@ export function AuthShell({tagline, children}: {tagline: string; children: React
         </div>
         {children}
         <div style={{fontSize: 12, color: 'var(--muted-2)', textAlign: 'center'}}>
-          No bank login, ever · everything stays on your device.
+          No bank login, ever · your data is saved to your Runway account.
         </div>
       </div>
     </div>
