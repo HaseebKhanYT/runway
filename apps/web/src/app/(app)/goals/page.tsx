@@ -640,9 +640,10 @@ function PlannerCard({state}: {state: AppState}) {
           )}
           {plan.promoCliff && (
             <div style={{fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.4}}>
-              ⚠ The 0% promo covers {plan.promoCliff.covered} of these {Math.max(1, months)} months.
-              The last {plan.promoCliff.exposed} revert to {plan.promoCliff.reversionApr}% APR —
-              that reversion is already counted in the total above.
+              ⚠ The {plan.promoCliff.rate}% promo covers {plan.promoCliff.covered} of these{' '}
+              {Math.max(1, months)} months. The last {plan.promoCliff.exposed} revert to{' '}
+              {plan.promoCliff.reversionApr}% APR — that reversion is already counted in the total
+              above.
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import {computeRunway, demoData, goalPerPaycheck, type AppState} from '@runway/shared';
 import {describe, expect, it} from 'vitest';
+import {formatMoney} from '../src/lib/format';
 import {computePlan} from '../src/lib/planner';
 
 const TODAY = new Date('2026-07-16T12:00:00');
@@ -54,6 +55,15 @@ function roomyCard(s: AppState): AppState {
         lender: null,
       },
     ],
+  };
+}
+
+/** Card B's promotion at a rate that is cheap rather than free (#25). */
+function promoCard(s: AppState): AppState {
+  const roomy = roomyCard(s);
+  return {
+    ...roomy,
+    cards: roomy.cards.map((c) => (c.id === 'cardb' ? {...c, promoRate: 4.9} : c)),
   };
 }
 
@@ -253,5 +263,44 @@ describe('computePlan', () => {
     const summary = plan({target: 40000, months: 3, kind: 'necessity', cardId: 'cardb'}, roomyCard);
     expect(summary.promoCliff).toBeNull();
     expect(summary.interest).toBe(0);
+  });
+
+  it('names a live promotional rate instead of the rate it reverts to', () => {
+    // A 4.9% promotion is still a promotion. Testing for 0% called this card
+    // "21.9% APR" while the sort directly above had already ordered it by the
+    // 4.9% it charges today (#25).
+    const summary = plan(
+      {target: 40000, months: 12, kind: 'necessity', cardId: 'cardb'},
+      promoCard,
+    );
+    const lever = summary.levers.find((l) => l.kind === 'card' && l.id === 'cardb');
+    expect(lever?.title).toBe('Put the rest on Card B · 4.9% until Dec 2026');
+    expect(lever?.title).not.toContain('21.9% APR');
+  });
+
+  it('quotes the lever the interest the plan charges once that card is picked', () => {
+    // The lever priced the whole term at the promo rate while the summary
+    // split it at the cliff, so choosing the card the lever recommended
+    // changed the number it had just promised. One cost model, one figure.
+    const summary = plan(
+      {target: 40000, months: 12, kind: 'necessity', cardId: 'cardb'},
+      promoCard,
+    );
+    expect(summary.interest).toBe(1572);
+    const lever = summary.levers.find((l) => l.kind === 'card' && l.id === 'cardb');
+    expect(lever?.sub).toBe(`≈${formatMoney(summary.interest)} interest over 12 mo`);
+  });
+
+  it('leaves a card with no promotion priced exactly as it was', () => {
+    // The blast radius of pricing every lever through `planInterest`: for a
+    // card with no live promo it collapses to the single-rate formula it
+    // replaced, so Card A's row must not move by a cent.
+    const summary = plan(
+      {target: 40000, months: 12, kind: 'necessity', cardId: 'cardb'},
+      promoCard,
+    );
+    const lever = summary.levers.find((l) => l.kind === 'card' && l.id === 'carda');
+    expect(lever?.title).toBe('Put the rest on Card A · 17.9% APR');
+    expect(lever?.sub).toBe('≈$203.00 interest over 12 mo');
   });
 });

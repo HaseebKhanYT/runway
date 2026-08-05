@@ -10,6 +10,7 @@ import {
   type RunwaySummary,
 } from '@runway/shared';
 import {formatMoney} from './format';
+import {livePromo} from './promo';
 
 export interface PlanInput {
   name: string;
@@ -43,6 +44,8 @@ export interface PromoCliff {
   covered: number;
   /** Months billed at the card's standard rate instead. */
   exposed: number;
+  /** What the covered months are billed at — a promo is not always 0%. */
+  rate: number;
   reversionApr: number;
   ends: string;
 }
@@ -256,23 +259,20 @@ function minViableTerm(
  */
 function planInterest(card: Card | undefined, financed: number, months: number, today: Date) {
   if (!card || financed <= 0) return {interest: 0, cliff: null as PromoCliff | null};
-  const promoRate = effectiveApr(card, today);
-  const onPromo = promoRate !== card.apr && card.promoEnd != null;
-  const promoMonths = onPromo
-    ? Math.max(0, Math.floor(daysUntil(card.promoEnd as string, today) / 30))
-    : months;
+  const promo = livePromo(card, today);
+  const promoMonths = promo ? Math.max(0, Math.floor(daysUntil(promo.ends, today) / 30)) : months;
   const covered = Math.min(months, promoMonths);
   const exposed = Math.max(0, months - covered);
 
   const at = (rate: number, m: number) =>
     rate === 0 || m <= 0 ? 0 : Math.ceil(((financed * rate) / 100) * (m / 24));
-  const interest = at(promoRate, covered) + at(card.apr, exposed);
+  const interest = at(promo ? promo.rate : card.apr, covered) + at(card.apr, exposed);
 
   return {
     interest,
     cliff:
-      onPromo && exposed > 0
-        ? {covered, exposed, reversionApr: card.apr, ends: card.promoEnd as string}
+      promo && exposed > 0
+        ? {covered, exposed, rate: promo.rate, reversionApr: card.apr, ends: promo.ends}
         : null,
   };
 }
@@ -393,11 +393,9 @@ export function computePlan(
       .filter((c) => Math.floor(c.limit - c.balance) > 0)
       .sort((a, b) => effectiveApr(a, today) - effectiveApr(b, today));
     for (const c of sortedCards) {
-      const cardEff = effectiveApr(c, today);
-      const promoEndIso = c.promoEnd;
-      const promoLive = cardEff === 0 && promoEndIso != null;
-      const promoEnd = promoLive
-        ? new Date(promoEndIso + 'T00:00:00').toLocaleDateString('en-US', {
+      const promo = livePromo(c, today);
+      const promoEnd = promo
+        ? new Date(promo.ends + 'T00:00:00').toLocaleDateString('en-US', {
             month: 'short',
             year: 'numeric',
           })
@@ -406,14 +404,17 @@ export function computePlan(
       // would really carry rather than what is left over after the card the
       // user happens to have selected already took its share.
       const cardFin = evaluate({...input, cardId: c.id}, state, months, today, c).financed;
-      const cardInterest =
-        cardEff === 0 ? 0 : Math.ceil(((cardFin * cardEff) / 100) * (months / 24));
+      // Through the same function that prices the plan, so the figure the row
+      // promises is the one the summary quotes the moment the card is picked.
+      // A second single-rate formula here disagreed with the summary for every
+      // promotion shorter than the term (#25).
+      const cardInterest = planInterest(c, cardFin, months, today).interest;
       levers.push({
         kind: 'card',
         id: c.id,
-        title: `Put the rest on ${c.name} · ${promoLive ? `0% until ${promoEnd}` : `${c.apr}% APR`}`,
+        title: `Put the rest on ${c.name} · ${promo ? `${promo.rate}% until ${promoEnd}` : `${c.apr}% APR`}`,
         sub:
-          cardEff === 0
+          promo != null && cardInterest === 0
             ? `≈${formatMoney(cardFin)} financed · $0 interest if cleared before the promo ends`
             : `≈${formatMoney(cardInterest)} interest over ${months} mo`,
       });
