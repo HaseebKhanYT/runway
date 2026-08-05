@@ -41,6 +41,70 @@ export interface ViewModel {
   unpaidBillCount: number;
 }
 
+/** Which term held the pace at exactly zero (#153). */
+type StallCause = {kind: 'balance'} | {kind: 'paycheck'} | {kind: 'commitments'; phrase: string};
+
+/**
+ * Classify a zero pace. Only sound inside the `stalled` arm — by then the
+ * earlier arms have excluded `safe < 0`, `payAmount <= 0` and `cycleSurplus < 0`,
+ * so both per-day figures are `>= 0` and `effectivePerDay` is exactly 0.
+ *
+ * `crunch.ts`'s `crunchCause` is not reused. It is documented as valid only
+ * where `safe < 0`, and that precondition is what makes its final arm sound: at
+ * `safe === 0` with no bills and no goals it still returns `setAside`, which is
+ * the #90 bug relocated rather than fixed. This is the `safe >= 0` twin, and it
+ * asks a different question — `effectivePerDay` is a `min` of two terms, so the
+ * honest cause is whichever term binds, and only then which of its inputs
+ * actually exists.
+ */
+function classifyStall(runway: RunwaySummary, payAmount: number): StallCause {
+  const {thisCyclePerDay, sustainablePerDay, billsDueBeforePayday, setAside, cycleSurplus} = runway;
+  const thisCycleBinds = thisCyclePerDay <= sustainablePerDay;
+  // `computeRunway` does not carry `billsPerCycle` out, so the sustainable arm
+  // has to recover it by subtraction — and subtracting floats leaves ~1e-13 of
+  // residue on a profile that has no bills at all. Half a cent is below
+  // anything the UI can render and far above anything the subtraction invents,
+  // so it separates a real bill from arithmetic noise.
+  const hasBills = thisCycleBinds
+    ? billsDueBeforePayday > 0
+    : payAmount - cycleSurplus - setAside > 0.005;
+  const hasGoals = setAside > 0;
+  if (!hasBills && !hasGoals) {
+    // Nothing is committed, so the binding term is the whole story: this cycle
+    // binding means the balance cannot reach payday, the other means one
+    // paycheck cannot.
+    return thisCycleBinds ? {kind: 'balance'} : {kind: 'paycheck'};
+  }
+  // Name only what exists. The both-ways phrase is byte-for-byte the string
+  // this arm has always printed — that case was the one it was written for.
+  return {
+    kind: 'commitments',
+    phrase: hasBills && hasGoals ? 'bills & goals' : hasBills ? 'bills' : 'set-asides',
+  };
+}
+
+function stallHeroSub(cause: StallCause, balanceF: string, payAmountF: string): string {
+  switch (cause.kind) {
+    case 'balance':
+      return `${balanceF} is all there is until payday — nothing is committed against it`;
+    case 'paycheck':
+      return `${payAmountF} a paycheck does not stretch to a dollar a day`;
+    case 'commitments':
+      return `nothing left over after ${cause.phrase}`;
+  }
+}
+
+function stallPerDaySub(cause: StallCause, balanceF: string, payAmountF: string): string {
+  switch (cause.kind) {
+    case 'balance':
+      return `${balanceF} until payday, with nothing committed against it`;
+    case 'paycheck':
+      return `${payAmountF} a paycheck does not stretch to a dollar a day`;
+    case 'commitments':
+      return `nothing left over after ${cause.phrase}`;
+  }
+}
+
 /** Display strings for the shell + dashboard hero (catalog §1.0/§1.1). */
 export function buildViewModel(state: AppState, today: Date): ViewModel {
   const runway = computeRunway(state, today);
@@ -72,6 +136,11 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   // Zero per day is not a pace anyone can keep. It gets the same treatment as
   // a negative one, in the colour and in the copy.
   const stalled = effectivePerDay <= 0;
+  // Computed unconditionally because both subtitle chains need it and the
+  // arithmetic is free; it is read only from the arms where it is sound.
+  const stallCause = classifyStall(runway, state.profile.payAmount);
+  const balanceF = formatMoney(balance);
+  const payAmountF = formatMoney(state.profile.payAmount);
 
   const heroLabel = 'YOURS TO SPEND, EVERY DAY';
   const heroNumber = formatDayAmount(effectivePerDay) + '/day';
@@ -84,7 +153,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   } else if (overCommitted) {
     heroSub = `your goals + bills need ${formatMoney(-cycleSurplus)} more than each paycheck brings in — stretch a goal timeline`;
   } else if (stalled) {
-    heroSub = 'nothing left over after bills & goals';
+    heroSub = stallHeroSub(stallCause, balanceF, payAmountF);
   } else if (squeezed) {
     heroSub = `a pace that still works after payday — this cycle alone would allow ${formatDayAmount(thisCyclePerDay)}/day`;
   } else {
@@ -101,7 +170,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   } else if (overCommitted) {
     perDaySub = `${formatMoney(-cycleSurplus)} short each paycheck — trim a bill or stretch a goal`;
   } else {
-    perDaySub = 'nothing left over after bills & goals';
+    perDaySub = stallPerDaySub(stallCause, balanceF, payAmountF);
   }
 
   const setAside = state.goals
@@ -113,7 +182,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
   return {
     runway,
     balance,
-    balanceF: formatMoney(balance),
+    balanceF,
     todayLabel: today.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
@@ -134,7 +203,7 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     // `payday in 0d` is not a phrase, and `apps/web` has no component test
     // harness — this is the only place a test can read the string.
     paydayChip: paydayOff === 0 ? 'payday today' : `payday in ${paydayOff}d`,
-    payAmountF: formatMoney(state.profile.payAmount),
+    payAmountF,
     setAsideF: formatMoney(setAside),
     unpaidBillCount: state.bills.filter((b) => !b.paid).length,
   };

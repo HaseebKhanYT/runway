@@ -101,10 +101,94 @@ describe('buildViewModel', () => {
 
   it('says nothing is left over when the pace is zero but income exists', () => {
     // $10 a cycle floors to $0/day: honest, but not caused by a missing wage.
+    // It is not caused by bills or goals either — this profile has neither, and
+    // pinning the shipped "after bills & goals" copy here was pinning the #153
+    // bug. $6,000 divided over 14 days is a fine pace; what collapses it is the
+    // sustainable term, so the paycheck is what the copy has to name.
     const vm = buildViewModel(bareState(10), TODAY);
     expect(vm.perDayF).toBe('$0');
     expect(vm.heroColor).toBe('#e58c5b');
     expect(vm.perDayColor).toBe('#c2542a');
+    expect(vm.runway.thisCyclePerDay).toBeGreaterThan(vm.runway.sustainablePerDay);
+    expect(vm.heroSub).toBe('$10.00 a paycheck does not stretch to a dollar a day');
+    expect(vm.perDaySub).toBe('$10.00 a paycheck does not stretch to a dollar a day');
+  });
+
+  it('names the balance when the pace is zero and nothing is committed', () => {
+    // #153: the `stalled` arm was widened from `< 0` to `<= 0` by the #85 fix
+    // and inherited copy written for the case where commitments really had
+    // consumed the money. A profile with no bills and no goals was told its
+    // bills and goals had eaten everything that was never there.
+    for (const [balance, balanceF] of [
+      [0, '$0.00'],
+      [10, '$10.00'],
+    ] as const) {
+      const state = bareState(1700);
+      state.profile.primaryBalance = balance;
+      const vm = buildViewModel(state, TODAY);
+      expect(vm.runway.effectivePerDay).toBe(0);
+      // This cycle is the binding term, so the balance — not the wage — is why.
+      expect(vm.runway.thisCyclePerDay).toBeLessThanOrEqual(vm.runway.sustainablePerDay);
+      expect(vm.heroSub).toBe(
+        `${balanceF} is all there is until payday — nothing is committed against it`,
+      );
+      expect(vm.perDaySub).toBe(`${balanceF} until payday, with nothing committed against it`);
+      for (const copy of [vm.heroSub, vm.perDaySub]) {
+        expect(copy).not.toContain('bill');
+        expect(copy).not.toContain('goal');
+      }
+    }
+  });
+
+  it('blames only the bills when the goals are gone', () => {
+    // Demo bills, no goals, a balance that clears them with $5.51 to spare —
+    // enough to stay out of the crunch arm, not enough to be a day's pace.
+    const state = demoData(TODAY);
+    state.goals = [];
+    state.profile.primaryBalance = 1290;
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.runway.safe).toBeGreaterThanOrEqual(0);
+    expect(vm.runway.effectivePerDay).toBe(0);
+    expect(vm.heroSub).toBe('nothing left over after bills');
+    expect(vm.perDaySub).toBe('nothing left over after bills');
+  });
+
+  it('blames only the set-asides when the bills are gone', () => {
+    const state = demoData(TODAY);
+    state.bills = [];
+    state.profile.primaryBalance = 130;
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.runway.setAside).toBe(126);
+    expect(vm.runway.billsDueBeforePayday).toBe(0);
+    expect(vm.runway.effectivePerDay).toBe(0);
+    expect(vm.heroSub).toBe('nothing left over after set-asides');
+    expect(vm.perDaySub).toBe('nothing left over after set-asides');
+  });
+
+  it('keeps the shipped copy when both bills and goals exist', () => {
+    // The one state the old string was actually written for. It has to survive
+    // the split byte-for-byte, or #153 traded one wrong sentence for another.
+    const state = demoData(TODAY);
+    state.profile.primaryBalance = 1415;
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.runway.safe).toBeGreaterThanOrEqual(0);
+    expect(vm.runway.effectivePerDay).toBe(0);
+    expect(vm.heroSub).toBe('nothing left over after bills & goals');
+    expect(vm.perDaySub).toBe('nothing left over after bills & goals');
+  });
+
+  it('still finds the bills when the sustainable term is the binding one', () => {
+    // The other half of the classifier: here the balance is healthy and it is
+    // the paycheck that runs out, so `billsDueBeforePayday` is the wrong term
+    // to read — the monthly bills have to be recovered from `cycleSurplus` by
+    // subtraction. A wage that clears the commitments by $7.72 a cycle is not
+    // over-committed, but it is not a dollar a day either.
+    const state = demoData(TODAY);
+    state.profile.payAmount = 730;
+    const vm = buildViewModel(state, TODAY);
+    expect(vm.runway.overCommitted).toBe(false);
+    expect(vm.runway.sustainablePerDay).toBe(0);
+    expect(vm.runway.thisCyclePerDay).toBeGreaterThan(0);
     expect(vm.heroSub).toBe('nothing left over after bills & goals');
     expect(vm.perDaySub).toBe('nothing left over after bills & goals');
   });
