@@ -229,7 +229,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
         background: 'var(--bg)',
         zIndex: 70,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: 24,
         overflowY: 'auto',
@@ -242,6 +242,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 16,
+          marginTop: 'auto',
+          marginBottom: 'auto',
           animation: 'fadeUp .25s ease-out',
         }}
       >
