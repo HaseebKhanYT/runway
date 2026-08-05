@@ -1,29 +1,18 @@
 'use client';
 
-import {daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
+import {daysUntil, type AppState, type Card} from '@runway/shared';
 import {formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';
 import {cardLine, rewardPillColors} from '../../../lib/card-lines';
+import {
+  cardFormIncomplete,
+  cardFormProblems,
+  cardPayload,
+  type CardForm,
+} from '../../../lib/card-form';
 import {useAppState, useFlow} from '../../../lib/queries';
-
-interface CardForm {
-  cardId: string | null;
-  name: string;
-  aprRaw: string;
-  limitRaw: string;
-  balanceRaw: string;
-  dueRaw: string;
-  minPayRaw: string;
-  payInFull: boolean;
-  rewards: CardReward[];
-  rewardRateRaw: string;
-  rewardCatRaw: string;
-  promoOn: boolean;
-  promoAprRaw: string;
-  promoMonthsRaw: string;
-}
 
 function emptyForm(): CardForm {
   return {
@@ -308,6 +297,12 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
   );
 }
 
+/** A refusal, in the helper-text shape of this form but in the danger colour. */
+function FormProblem({children}: {children: string | undefined}) {
+  if (!children) return null;
+  return <div style={{fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.45}}>{children}</div>;
+}
+
 export default function CardsPage() {
   const {data: state} = useAppState();
   const [form, setForm] = useState<CardForm | null>(null);
@@ -316,18 +311,7 @@ export default function CardsPage() {
   const save = useFlow<CardForm>((f) => ({
     path: f.cardId ? `/cards/${f.cardId}` : '/cards',
     method: f.cardId ? 'PATCH' : 'POST',
-    json: {
-      name: f.name.trim(),
-      apr: parseFloat(f.aprRaw) || 0,
-      limit: parseFloat(f.limitRaw) || 0,
-      balance: parseFloat(f.balanceRaw) || 0,
-      dueDay: f.dueRaw ? Math.min(31, Math.max(1, parseInt(f.dueRaw, 10))) : null,
-      minPay: f.payInFull ? null : f.minPayRaw ? parseFloat(f.minPayRaw) : null,
-      payInFull: f.payInFull,
-      rewards: f.rewards,
-      promoRate: f.promoOn ? parseFloat(f.promoAprRaw) || 0 : null,
-      promoMonths: f.promoOn && f.promoMonthsRaw ? parseInt(f.promoMonthsRaw, 10) : null,
-    },
+    json: cardPayload(f),
   }));
 
   if (!state) return null;
@@ -337,7 +321,10 @@ export default function CardsPage() {
   const available = Math.max(0, totalLimit - totalDebt);
   const usedPct = totalLimit > 0 ? Math.round((totalDebt / totalLimit) * 100) : 0;
 
-  const formValid = form && form.name.trim() && parseFloat(form.limitRaw) > 0;
+  // A refused entry keeps the button down and says why, instead of spending a
+  // round trip on a 400 the form has no way to show (#148).
+  const problems = form ? cardFormProblems(form) : {};
+  const canSave = form && !cardFormIncomplete(form) && Object.keys(problems).length === 0;
 
   const addReward = () => {
     if (!form || !form.rewardRateRaw.trim() || !form.rewardCatRaw.trim()) return;
@@ -463,6 +450,7 @@ export default function CardsPage() {
               value={form.name}
               onChange={(e) => setForm({...form, name: e.target.value})}
             />
+            <FormProblem>{problems.name}</FormProblem>
             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
               <input
                 className={`${ui.input} tnum`}
@@ -493,6 +481,9 @@ export default function CardsPage() {
                 }
               />
             </div>
+            <FormProblem>{problems.apr}</FormProblem>
+            <FormProblem>{problems.limit}</FormProblem>
+            <FormProblem>{problems.balance}</FormProblem>
             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
               <input
                 className={`${ui.input} tnum`}
@@ -525,6 +516,8 @@ export default function CardsPage() {
                 }
               />
             </div>
+            <FormProblem>{problems.dueDay}</FormProblem>
+            <FormProblem>{problems.minPay}</FormProblem>
             <div style={{fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.45}}>
               set a due day and the payment shows up in Bills and on your runway — leave the $ blank
               and we&apos;ll pencil in a minimum
@@ -650,6 +643,9 @@ export default function CardsPage() {
                 />
               </div>
             )}
+            <FormProblem>{problems.promoRate}</FormProblem>
+            <FormProblem>{problems.promoMonths}</FormProblem>
+            <FormProblem>{problems.form}</FormProblem>
 
             <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
               <button className={ui.btnGhost} onClick={() => setForm(null)}>
@@ -658,7 +654,7 @@ export default function CardsPage() {
               <button
                 className={ui.btnPrimary}
                 style={{width: 'auto', padding: '9px 18px'}}
-                disabled={!formValid || save.isPending}
+                disabled={!canSave || save.isPending}
                 onClick={() => save.mutate(form, {onSuccess: () => setForm(null)})}
               >
                 {form.cardId ? 'Save changes' : 'Add card'}
