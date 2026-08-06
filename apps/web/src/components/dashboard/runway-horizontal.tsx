@@ -3,7 +3,7 @@
 import {daysUntil, type AppState} from '@runway/shared';
 import {useRef, useState} from 'react';
 import {formatShortDate, formatMoney} from '../../lib/format';
-import {billNodeLabel, layoutTimeline, paydayNodeLabel} from '../../lib/timeline';
+import {billNodeLabel, LABEL_BOX_WIDTH, layoutTimeline, paydayNodeLabel} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal-context';
 
@@ -14,7 +14,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
   const [fading, setFading] = useState<Set<string>>(new Set());
   const fadeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const {nodes} = layoutTimeline(state.bills, vm.runway.daysToPayday, today, fading);
+  const {nodes, railWidth} = layoutTimeline(state.bills, vm.runway.daysToPayday, today, fading);
 
   const onBillClick = (billId: string) => {
     const bill = state.bills.find((b) => b.id === billId);
@@ -35,7 +35,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
         overflowX: 'auto',
       }}
     >
-      <div style={{position: 'relative', height: 224, minWidth: 920}}>
+      <div style={{position: 'relative', height: 224, minWidth: railWidth}}>
         <div
           style={{
             position: 'absolute',
@@ -147,7 +147,7 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
                   : {}),
               }}
             >
-              <div style={{width: 100, textAlign: 'center'}}>
+              <div style={{width: LABEL_BOX_WIDTH, textAlign: 'center'}}>
                 <div
                   style={{
                     fontSize: 12.5,

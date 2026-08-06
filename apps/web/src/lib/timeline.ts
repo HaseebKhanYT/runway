@@ -10,9 +10,30 @@ export interface TimelineNode {
 }
 
 /**
+ * The desktop rail's design width in px, and the width of a bill's label box on
+ * it. The push-apart floors below are sized against the pair: the 13% same-side
+ * floor exists to clear the label box at the design width, i.e.
+ * `0.13 * RAIL_MIN_WIDTH > LABEL_BOX_WIDTH` (119.6px against 100px). Both live
+ * here rather than in the component so that relationship is stated once and
+ * cannot drift between the two files that depend on it.
+ */
+export const RAIL_MIN_WIDTH = 920;
+export const LABEL_BOX_WIDTH = 100;
+
+/**
  * Two-pass timeline layout (catalog §3.4): position by date along 9–91% of the
  * rail, push apart (7% any neighbour, 13% same side), then compress back if the
  * chain overran the rail. Payday sorts last on a tie and always sits below.
+ *
+ * The compression cannot be dropped — every position in the component is a
+ * percentage (rail line at 2.5%/97.5%, Today at 3%, nodes at `left: pct%`), so
+ * `pct` has to stay inside 9..91. But it multiplies every gap by `k < 1`, which
+ * divides the same-side floor back below the label box and overlaps labels past
+ * ~14 unpaid bills. So the rail grows with its nodes instead of the floors being
+ * compressed away: `railWidth` is `RAIL_MIN_WIDTH` scaled by `1 / k`, the width
+ * at which the compressed percentages land on the physical spacing the floors
+ * were designed for, and the parent's `overflowX: auto` absorbs the extra
+ * length. It is exactly `RAIL_MIN_WIDTH` whenever the chain did not overrun.
  *
  * Bill positions are derived from `today` — the same clock `daysToPayday` came
  * from — so a bill and the payday marker can never be laid out a day apart.
@@ -22,7 +43,7 @@ export function layoutTimeline(
   daysToPayday: number,
   today: Date,
   fadingIds: ReadonlySet<string> = new Set(),
-): {nodes: TimelineNode[]} {
+): {nodes: TimelineNode[]; railWidth: number} {
   const future = bills
     .map((b) => ({bill: b, off: daysUntil(b.dueDate, today)}))
     .filter(({bill, off}) => off >= 0 && (!bill.paid || fadingIds.has(bill.id)))
@@ -50,11 +71,13 @@ export function layoutTimeline(
   }
 
   const last = events[events.length - 1];
+  let railWidth = RAIL_MIN_WIDTH;
   if (last && last.pct > 91) {
     const k = (91 - 9) / (last.pct - 9);
     for (const ev of events) ev.pct = 9 + (ev.pct - 9) * k;
+    railWidth = RAIL_MIN_WIDTH / k;
   }
-  return {nodes: events};
+  return {nodes: events, railWidth};
 }
 
 /**
