@@ -4,10 +4,12 @@ import {type AppState} from '@runway/shared';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
+import {moneySignature, safeToSpendAnnouncement} from '../../lib/announcement';
 import {useMedia} from '../../lib/use-media';
 import {buildViewModel, PAGE_TITLES, type View} from '../../lib/view-model';
 import {BrandMark} from '../brand/brand-mark';
 import {useModals} from '../modals/modal-context';
+import {LiveRegion} from './live-region';
 import {NavIcon} from './nav-icons';
 import styles from './shell.module.css';
 
@@ -35,6 +37,7 @@ export function Shell({state, children}: {state: AppState; children: ReactNode})
 
   return (
     <div style={{minHeight: '100vh', display: 'flex', background: 'var(--bg)'}}>
+      <LiveRegion message={safeToSpendAnnouncement(vm)} signature={moneySignature(vm)} />
       {!isMobile && (
         <div
           style={{

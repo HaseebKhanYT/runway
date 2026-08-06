@@ -49,6 +49,22 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
+/* Off-screen for the eye, present for a screen reader. Clipped rather than
+   `display: none` or `visibility: hidden`, both of which take the element out
+   of the accessibility tree and would silence the live regions entirely. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
