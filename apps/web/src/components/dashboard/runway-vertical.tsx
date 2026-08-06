@@ -1,8 +1,9 @@
 'use client';
 
 import {daysUntil, type AppState} from '@runway/shared';
+import type {CSSProperties} from 'react';
 import {formatShortDate, formatMoney} from '../../lib/format';
-import {spineGap} from '../../lib/timeline';
+import {billNodeLabel, paydayNodeLabel, spineGap} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal-context';
 
@@ -52,8 +53,21 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
           if (ev.kind === 'payday') {
             return (
               <div key="payday">
-                <div
-                  style={{display: 'flex', alignItems: 'center', gap: 10, marginTop}}
+                {/* A button, not a div: confirming payday is a primary action and
+                    below 780px this spine is the only place it is offered.
+                    width/textAlign undo a button's shrink-to-fit, centred UA
+                    defaults so it lays out exactly as the row it replaced. */}
+                <button
+                  type="button"
+                  aria-label={paydayNodeLabel(vm.payAmountF, vm.paydayLabel)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginTop,
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
                   onClick={() => openModal('payday')}
                 >
                   <span
@@ -66,7 +80,6 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                       marginLeft: -26,
                       flex: 'none',
                       animation: 'pulse 2.4s infinite',
-                      cursor: 'pointer',
                     }}
                   />
                   <span style={{fontSize: 13, fontWeight: 650, color: 'var(--accent)'}}>
@@ -83,7 +96,7 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                   >
                     +{vm.payAmountF}
                   </span>
-                </div>
+                </button>
                 {vm.runway.setAside > 0 && (
                   <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 9}}>
                     <span
@@ -117,12 +130,14 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
           }
           const bill = state.bills.find((b) => b.id === ev.id);
           if (!bill) return null;
-          return (
-            <div
-              key={bill.id}
-              style={{display: 'flex', alignItems: 'center', gap: 10, marginTop}}
-              onClick={() => !bill.paid && openModal('paySource', {billId: bill.id})}
-            >
+          const rowStyle: CSSProperties = {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginTop,
+          };
+          const row = (
+            <>
               <span
                 style={{
                   width: 24,
@@ -137,7 +152,6 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 12,
-                  cursor: 'pointer',
                 }}
               >
                 ✓
@@ -168,7 +182,24 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
               >
                 −{formatMoney(bill.amount).replace('−', '')}
               </span>
+            </>
+          );
+          // Only an unpaid bill is actionable, so only it becomes a button —
+          // a paid row stays inert markup rather than an empty tab stop.
+          return bill.paid ? (
+            <div key={bill.id} style={rowStyle}>
+              {row}
             </div>
+          ) : (
+            <button
+              key={bill.id}
+              type="button"
+              aria-label={billNodeLabel(bill, today)}
+              style={{...rowStyle, width: '100%', textAlign: 'left'}}
+              onClick={() => openModal('paySource', {billId: bill.id})}
+            >
+              {row}
+            </button>
           );
         })}
       </div>
