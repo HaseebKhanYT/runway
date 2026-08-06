@@ -6,6 +6,7 @@ import {useState} from 'react';
 import {ActivityRow} from '../../../components/activity/activity-row';
 import ui from '../../../components/ui/ui.module.css';
 import {useAppState, useFlow} from '../../../lib/queries';
+import {ACTIVITY_WINDOW_DAYS, windowTotals} from '../../../lib/activity-totals';
 
 const FILTERS = ['All', 'Money in', 'Spending', 'Bills & subs', 'Goals'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -45,9 +46,8 @@ export default function ActivityPage() {
   if (!state) return null;
   const today = new Date();
 
-  const txIn = state.txns.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const txOut = state.txns.filter((t) => t.amount < 0).reduce((s, t) => s - t.amount, 0);
-  const net = txIn - txOut;
+  const {moneyIn: txIn, moneyOut: txOut, net} = windowTotals(state.txns);
+  const windowLabel = `last ${ACTIVITY_WINDOW_DAYS} days`;
 
   const filtered = state.txns.filter(
     (t) =>
@@ -88,14 +88,9 @@ export default function ActivityPage() {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 16}}>
       <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
-        {stat('MONEY IN', `+${formatMoney(txIn)}`, 'var(--success)', 'last 14 days')}
-        {stat('MONEY OUT', `−${formatMoney(txOut).replace('−', '')}`, 'var(--ink)', 'last 14 days')}
-        {stat(
-          'NET',
-          formatMoney(net),
-          net >= 0 ? 'var(--success)' : 'var(--danger)',
-          'this period',
-        )}
+        {stat('MONEY IN', `+${formatMoney(txIn)}`, 'var(--success)', windowLabel)}
+        {stat('MONEY OUT', `−${formatMoney(txOut).replace('−', '')}`, 'var(--ink)', windowLabel)}
+        {stat('NET', formatMoney(net), net >= 0 ? 'var(--success)' : 'var(--danger)', windowLabel)}
       </div>
 
       <div style={{display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center'}}>
