@@ -4,6 +4,7 @@ import {useUser} from '@clerk/nextjs';
 import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/shared';
 import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
+import {billRowProblem, cardRowProblem, type RowProblem} from '../../lib/onboarding-rows';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand-mark';
 import ui from '../ui/ui.module.css';
@@ -41,6 +42,15 @@ interface ObCard {
   apr: number;
 }
 
+/**
+ * Stable ids, because the message element is always in the DOM: the inputs
+ * point at it with `aria-describedby` only while it has something to say.
+ */
+const BILL_PROBLEM_ID = 'onboarding-bill-problem';
+const CARD_PROBLEM_ID = 'onboarding-card-problem';
+
+const problemStyle = {fontSize: 11.5, color: 'var(--danger)', lineHeight: 1.45};
+
 /** Six-step first-run flow (catalog §1.9). `onExit` present = launched from Settings. */
 export function Onboarding({onExit}: {onExit?: () => void}) {
   const {user} = useUser();
@@ -53,11 +63,13 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   const [billName, setBillName] = useState('');
   const [billAmountRaw, setBillAmountRaw] = useState('');
   const [billDueRaw, setBillDueRaw] = useState('');
+  const [billProblem, setBillProblem] = useState<RowProblem | null>(null);
   const [cards, setCards] = useState<ObCard[]>([]);
   const [cardName, setCardName] = useState('');
   const [cardOweRaw, setCardOweRaw] = useState('');
   const [cardLimitRaw, setCardLimitRaw] = useState('');
   const [cardAprRaw, setCardAprRaw] = useState('');
+  const [cardProblem, setCardProblem] = useState<RowProblem | null>(null);
   const [pickedCats, setPickedCats] = useState<Set<string>>(new Set(['eat', 'gro', 'tra']));
 
   const complete = useFlow<void>(() => ({
@@ -83,10 +95,17 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   const billsSum = bills.reduce((s, b) => s + b.amount, 0);
   const cardsOwed = cards.reduce((s, c) => s + c.balance, 0);
 
+  // A refusal used to be a bare `return`, so a row with a field missing just
+  // did not appear and nothing said why (#58). Name the field instead.
   const addBill = () => {
+    const problem = billRowProblem(billName, billAmountRaw);
+    if (problem) {
+      setBillProblem(problem);
+      return;
+    }
+    setBillProblem(null);
     const amount = parseFloat(billAmountRaw) || 0;
     const dueDay = Math.min(31, Math.max(1, parseInt(billDueRaw, 10) || 1));
-    if (!billName.trim() || amount <= 0) return;
     setBills([...bills, {name: billName.trim(), amount, dueDay, kind: 'survival'}]);
     setBillName('');
     setBillAmountRaw('');
@@ -94,10 +113,15 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   };
 
   const addCard = () => {
+    const problem = cardRowProblem(cardName, cardLimitRaw);
+    if (problem) {
+      setCardProblem(problem);
+      return;
+    }
+    setCardProblem(null);
     const owe = parseFloat(cardOweRaw) || 0;
     const limit = parseFloat(cardLimitRaw) || 0;
     const apr = parseFloat(cardAprRaw) || 0;
-    if (!cardName.trim() || limit <= 0) return;
     setCards([...cards, {name: cardName.trim(), balance: owe, limit, apr}]);
     setCardName('');
     setCardOweRaw('');
@@ -392,36 +416,59 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   ))}
                 </div>
               )}
-              <div style={{display: 'flex', gap: 6}}>
-                <input
-                  className={ui.input}
-                  style={{flex: 2}}
-                  placeholder="Rent, electric…"
-                  value={billName}
-                  onChange={(e) => setBillName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addBill()}
-                />
-                <input
-                  className={`${ui.input} tnum`}
-                  style={{flex: 1}}
-                  inputMode="decimal"
-                  placeholder="950"
-                  value={billAmountRaw}
-                  onChange={(e) => setBillAmountRaw(e.target.value.replace(/[^0-9.]/g, ''))}
-                  onKeyDown={(e) => e.key === 'Enter' && addBill()}
-                />
-                <input
-                  className={`${ui.input} tnum`}
-                  style={{flex: 1}}
-                  inputMode="numeric"
-                  placeholder="due 15"
-                  value={billDueRaw}
-                  onChange={(e) => setBillDueRaw(e.target.value.replace(/[^0-9]/g, ''))}
-                  onKeyDown={(e) => e.key === 'Enter' && addBill()}
-                />
-                <button className={ui.btnGhost} onClick={addBill}>
-                  Add
-                </button>
+              <div>
+                <div style={{display: 'flex', gap: 6}}>
+                  <input
+                    className={ui.input}
+                    style={{flex: 2}}
+                    placeholder="Rent, electric…"
+                    value={billName}
+                    aria-invalid={billProblem?.field === 'name'}
+                    aria-describedby={billProblem?.field === 'name' ? BILL_PROBLEM_ID : undefined}
+                    onChange={(e) => {
+                      setBillName(e.target.value);
+                      setBillProblem(null);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && addBill()}
+                  />
+                  <input
+                    className={`${ui.input} tnum`}
+                    style={{flex: 1}}
+                    inputMode="decimal"
+                    placeholder="950"
+                    value={billAmountRaw}
+                    aria-invalid={billProblem?.field === 'amount'}
+                    aria-describedby={billProblem?.field === 'amount' ? BILL_PROBLEM_ID : undefined}
+                    onChange={(e) => {
+                      setBillAmountRaw(e.target.value.replace(/[^0-9.]/g, ''));
+                      setBillProblem(null);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && addBill()}
+                  />
+                  <input
+                    className={`${ui.input} tnum`}
+                    style={{flex: 1}}
+                    inputMode="numeric"
+                    placeholder="due 15"
+                    value={billDueRaw}
+                    onChange={(e) => {
+                      setBillDueRaw(e.target.value.replace(/[^0-9]/g, ''));
+                      setBillProblem(null);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && addBill()}
+                  />
+                  <button className={ui.btnGhost} onClick={addBill}>
+                    Add
+                  </button>
+                </div>
+                {/* Always mounted, so the text arriving is what gets announced. */}
+                <div
+                  id={BILL_PROBLEM_ID}
+                  role="alert"
+                  style={{...problemStyle, marginTop: billProblem ? 6 : 0}}
+                >
+                  {billProblem?.message ?? ''}
+                </div>
               </div>
               <div>
                 <div className={ui.label}>ONE-TAP SUBSCRIPTIONS</div>
@@ -491,7 +538,12 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   style={{flex: '2 1 120px'}}
                   placeholder="Card nickname…"
                   value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
+                  aria-invalid={cardProblem?.field === 'name'}
+                  aria-describedby={cardProblem?.field === 'name' ? CARD_PROBLEM_ID : undefined}
+                  onChange={(e) => {
+                    setCardName(e.target.value);
+                    setCardProblem(null);
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 />
                 <input
@@ -500,7 +552,11 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   inputMode="decimal"
                   placeholder="owe"
                   value={cardOweRaw}
-                  onChange={(e) => setCardOweRaw(e.target.value.replace(/[^0-9.]/g, ''))}
+                  onChange={(e) => {
+                    setCardOweRaw(e.target.value.replace(/[^0-9.]/g, ''));
+                    setCardProblem(null);
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 />
                 <input
                   className={`${ui.input} tnum`}
@@ -508,7 +564,13 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   inputMode="decimal"
                   placeholder="limit"
                   value={cardLimitRaw}
-                  onChange={(e) => setCardLimitRaw(e.target.value.replace(/[^0-9.]/g, ''))}
+                  aria-invalid={cardProblem?.field === 'limit'}
+                  aria-describedby={cardProblem?.field === 'limit' ? CARD_PROBLEM_ID : undefined}
+                  onChange={(e) => {
+                    setCardLimitRaw(e.target.value.replace(/[^0-9.]/g, ''));
+                    setCardProblem(null);
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 />
                 <input
                   className={`${ui.input} tnum`}
@@ -516,15 +578,29 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   inputMode="decimal"
                   placeholder="APR %"
                   value={cardAprRaw}
-                  onChange={(e) => setCardAprRaw(e.target.value.replace(/[^0-9.]/g, ''))}
+                  onChange={(e) => {
+                    setCardAprRaw(e.target.value.replace(/[^0-9.]/g, ''));
+                    setCardProblem(null);
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 />
                 <button className={ui.btnGhost} onClick={addCard}>
                   Add
                 </button>
               </div>
-              <div style={{fontSize: 11.5, color: 'var(--muted)'}}>
-                Rough numbers are fine — you can fine-tune APR and due dates later.
+              <div>
+                <div style={{fontSize: 11.5, color: 'var(--muted)'}}>
+                  Rough numbers are fine — you can fine-tune APR and due dates later.
+                </div>
+                {/* Its own node, not the hint's: an alert that starts out
+                    holding the hint would announce the hint. */}
+                <div
+                  id={CARD_PROBLEM_ID}
+                  role="alert"
+                  style={{...problemStyle, marginTop: cardProblem ? 4 : 0}}
+                >
+                  {cardProblem?.message ?? ''}
+                </div>
               </div>
               <button className={ui.btnPrimary} onClick={() => setStep(5)}>
                 {cards.length > 0
