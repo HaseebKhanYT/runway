@@ -265,7 +265,7 @@ export function AccountsModal({state}: {state: AppState}) {
             {!form.isPrimary && (
               <div>
                 <div className={ui.label}>TYPE</div>
-                <div style={{display: 'flex', gap: 7}}>
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
                   {(Object.keys(TYPE_META) as AccountType[]).map((t) => (
                     <button
                       key={t}
