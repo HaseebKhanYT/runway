@@ -99,6 +99,22 @@ describe('buildViewModel', () => {
     expect(vm.perDaySub).toBe('no paycheck on record — add one in Settings');
   });
 
+  it('flags the missing paycheck so a component never re-derives the rule', () => {
+    // #155: the payday modal rendered an enabled "Yes — $0.00 landed" over a
+    // handler that bails on `amount <= 0`, so two clicks sent no request. The
+    // modal now branches on this flag, which has to travel with the copy that
+    // already names the same state or the two drift apart.
+    const bare = buildViewModel(bareState(0), TODAY);
+    expect(bare.noIncome).toBe(true);
+    expect(bare.heroSub).toBe('no paycheck on record — add what lands on payday in Settings');
+    expect(bare.perDaySub).toBe('no paycheck on record — add one in Settings');
+
+    const seed = buildViewModel(demoData(TODAY), TODAY);
+    expect(seed.noIncome).toBe(false);
+    expect(seed.heroSub).not.toContain('no paycheck on record');
+    expect(seed.perDaySub).not.toContain('no paycheck on record');
+  });
+
   it('says nothing is left over when the pace is zero but income exists', () => {
     // $10 a cycle floors to $0/day: honest, but not caused by a missing wage.
     // It is not caused by bills or goals either — this profile has neither, and

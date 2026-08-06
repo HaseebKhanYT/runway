@@ -2,7 +2,7 @@
 
 import {daysUntil, type AppState} from '@runway/shared';
 import {formatShortDate, formatMoney} from '../../lib/format';
-import {spineGap} from '../../lib/timeline';
+import {spineGap, timelineBills} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
 import {useModals} from '../modals/modal-context';
 
@@ -17,9 +17,11 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
     id: string;
     off: number;
   }[] = [
-    ...state.bills
-      .map((b) => ({kind: 'bill' as const, id: b.id, off: daysUntil(b.dueDate, today)}))
-      .filter((b) => b.off >= 0),
+    ...timelineBills(state.bills, today).map(({bill, off}) => ({
+      kind: 'bill' as const,
+      id: bill.id,
+      off,
+    })),
     {kind: 'payday' as const, id: 'payday', off: daysToPayday},
   ].sort((a, b) => a.off - b.off || (a.kind === 'payday' ? 1 : -1));
 

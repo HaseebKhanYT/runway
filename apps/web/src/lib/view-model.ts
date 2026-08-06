@@ -37,6 +37,7 @@ export interface ViewModel {
   paydayLabel: string;
   paydayChip: string;
   payAmountF: string;
+  noIncome: boolean;
   setAsideF: string;
   unpaidBillCount: number;
 }
@@ -203,7 +204,11 @@ export function buildViewModel(state: AppState, today: Date): ViewModel {
     // `payday in 0d` is not a phrase, and `apps/web` has no component test
     // harness — this is the only place a test can read the string.
     paydayChip: paydayOff === 0 ? 'payday today' : `payday in ${paydayOff}d`,
-    payAmountF,
+    payAmountF: formatMoney(state.profile.payAmount),
+    // Exposed for the same reason `paydayChip` is: the payday modal has to
+    // branch on this state too, and a second definition of `payAmount <= 0`
+    // in a component is the drift #109 and #156 were filed for.
+    noIncome,
     setAsideF: formatMoney(setAside),
     unpaidBillCount: state.bills.filter((b) => !b.paid).length,
   };

@@ -12,9 +12,11 @@ import {useModals} from './modal-context';
 /** Payday confirm (catalog §1.11). */
 export function PaydayModal({state}: {state: AppState}) {
   const {closeModal} = useModals();
-  const [editing, setEditing] = useState(false);
-  const [amountRaw, setAmountRaw] = useState(String(state.profile.payAmount));
   const vm = buildViewModel(state, new Date());
+  const [editing, setEditing] = useState(false);
+  // With no paycheck on record the stored amount is 0, and seeding the field
+  // with it would only make the user clear it before they can type.
+  const [amountRaw, setAmountRaw] = useState(vm.noIncome ? '' : String(state.profile.payAmount));
 
   const confirm = useFlow<number>((amount) => ({
     path: '/payday/confirm',
@@ -34,28 +36,38 @@ export function PaydayModal({state}: {state: AppState}) {
       </div>
       {!editing ? (
         <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+          {/*
+            There is nothing to confirm when no paycheck is on record: the
+            stored amount is 0, which `run` refuses. So the primary becomes the
+            entry path itself rather than an enabled button over a handler that
+            returns immediately (#155).
+          */}
           <button
             className={ui.btnAccent}
-            onClick={() => run(state.profile.payAmount)}
-            disabled={confirm.isPending}
+            onClick={vm.noIncome ? () => setEditing(true) : () => run(state.profile.payAmount)}
+            disabled={!vm.noIncome && confirm.isPending}
           >
-            Yes — {formatMoney(state.profile.payAmount)} landed
+            {vm.noIncome
+              ? 'Enter what landed'
+              : `Yes — ${formatMoney(state.profile.payAmount)} landed`}
           </button>
-          <button
-            style={{
-              padding: 13,
-              borderRadius: 13,
-              border: '1.5px solid var(--ink)',
-              fontSize: 14,
-              fontWeight: 650,
-              transition: 'background .15s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-soft)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            onClick={() => setEditing(true)}
-          >
-            A different amount…
-          </button>
+          {!vm.noIncome && (
+            <button
+              style={{
+                padding: 13,
+                borderRadius: 13,
+                border: '1.5px solid var(--ink)',
+                fontSize: 14,
+                fontWeight: 650,
+                transition: 'background .15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-soft)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              onClick={() => setEditing(true)}
+            >
+              A different amount…
+            </button>
+          )}
           <button
             style={{
               padding: 11,
@@ -87,7 +99,9 @@ export function PaydayModal({state}: {state: AppState}) {
             />
           </div>
           <div style={{fontSize: 11.5, color: 'var(--muted)'}}>
-            fewer shifts, overtime — the cycle plans around the real number
+            {vm.noIncome
+              ? 'no paycheck on record — enter what actually landed'
+              : 'fewer shifts, overtime — the cycle plans around the real number'}
           </div>
           <button
             className={ui.btnAccent}

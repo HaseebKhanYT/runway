@@ -4,6 +4,7 @@ import {
   computeRunway,
   goalBarSplit,
   goalBehind,
+  goalChecks,
   goalPerPaycheck,
   goalPerMonth,
   goalRemaining,
@@ -74,17 +75,7 @@ function GoalCard({goal, state}: {goal: Goal; state: AppState}) {
   const dueLabel = goal.due
     ? new Date(goal.due + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
     : null;
-  const checks = goal.due
-    ? Math.max(
-        1,
-        Math.floor(
-          Math.max(
-            0,
-            Math.round((Date.parse(goal.due + 'T00:00:00') - today.getTime()) / 86400000),
-          ) / (cadence === 'weekly' ? 7 : cadence === 'monthly' ? 30 : 14),
-        ),
-      )
-    : null;
+  const checks = goalChecks(goal, cadence, today);
 
   const perLine =
     goal.paused && goal.paused !== '__crunch'

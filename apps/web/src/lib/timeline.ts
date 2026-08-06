@@ -10,6 +10,26 @@ export interface TimelineNode {
 }
 
 /**
+ * The single definition of which bills reach either runway, and in what order:
+ * still due (`off >= 0`) and not yet paid, unless the caller is fading a paid
+ * one off screen. Both the horizontal rail and the vertical spine call this, so
+ * the two layouts cannot drift into showing different bills for one account.
+ *
+ * Offsets come from `today` rather than the system clock so a caller can lay
+ * bills and its payday marker out against one instant.
+ */
+export function timelineBills(
+  bills: Bill[],
+  today: Date,
+  fadingIds: ReadonlySet<string> = new Set(),
+): {bill: Bill; off: number}[] {
+  return bills
+    .map((b) => ({bill: b, off: daysUntil(b.dueDate, today)}))
+    .filter(({bill, off}) => off >= 0 && (!bill.paid || fadingIds.has(bill.id)))
+    .sort((a, b) => a.off - b.off);
+}
+
+/**
  * Two-pass timeline layout (catalog §3.4): position by date along 9–91% of the
  * rail, push apart (7% any neighbour, 13% same side), then compress back if the
  * chain overran the rail. Payday sorts last on a tie and always sits below.
@@ -23,10 +43,7 @@ export function layoutTimeline(
   today: Date,
   fadingIds: ReadonlySet<string> = new Set(),
 ): {nodes: TimelineNode[]} {
-  const future = bills
-    .map((b) => ({bill: b, off: daysUntil(b.dueDate, today)}))
-    .filter(({bill, off}) => off >= 0 && (!bill.paid || fadingIds.has(bill.id)))
-    .sort((a, b) => a.off - b.off);
+  const future = timelineBills(bills, today, fadingIds);
   const maxOff = Math.max(daysToPayday, ...future.map((b) => b.off), 1);
 
   const unsorted: TimelineNode[] = [

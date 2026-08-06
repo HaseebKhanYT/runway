@@ -33,7 +33,9 @@
   font-weight: 600;
 }
 
+/* A chip labels a user-chosen name, so cap and wrap it rather than let it widen the page. */
 .chip {
+  max-width: 100%;
   padding: 7px 13px;
   border-radius: 999px;
   font-size: 12.5px;
@@ -46,7 +48,9 @@
     background 0.15s,
     color 0.15s,
     border-color 0.15s;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 .chip:hover {
   border-color: var(--ink);

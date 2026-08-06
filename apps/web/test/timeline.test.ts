@@ -1,6 +1,12 @@
 import {describe, expect, it} from 'vitest';
 import type {Bill} from '@runway/shared';
-import {billNodeLabel, layoutTimeline, paydayNodeLabel, spineGap} from '../src/lib/timeline';
+import {
+  billNodeLabel,
+  layoutTimeline,
+  paydayNodeLabel,
+  spineGap,
+  timelineBills,
+} from '../src/lib/timeline';
 
 const TODAY = new Date('2026-07-16T12:00:00');
 
@@ -28,6 +34,49 @@ function makeBill(id: string, off: number, paid = false): Bill {
     lender: null,
   };
 }
+
+describe('timelineBills', () => {
+  it('drops a paid bill that is still in the future', () => {
+    const bills = [makeBill('paid', 4, true), makeBill('due', 6)];
+    expect(timelineBills(bills, TODAY).map(({bill}) => bill.id)).toEqual(['due']);
+  });
+
+  it('selects the same bills, in the same order, as the rail lays out', () => {
+    const bills = [
+      makeBill('past', -3),
+      makeBill('paid', 5, true),
+      makeBill('soon', 2),
+      makeBill('later', 9),
+      makeBill('last', 12),
+    ];
+    const spine = timelineBills(bills, TODAY).map(({bill}) => bill.id);
+    const rail = layoutTimeline(bills, 14, TODAY)
+      .nodes.filter((n) => !n.payday)
+      .map((n) => n.id);
+    expect(spine).toEqual(rail);
+  });
+
+  it('excludes a bill whose due date has passed', () => {
+    const bills = [makeBill('past', -1), makeBill('today', 0)];
+    expect(timelineBills(bills, TODAY).map(({bill}) => bill.id)).toEqual(['today']);
+  });
+
+  it('keeps a paid bill while it is fading', () => {
+    const bills = [makeBill('paid', 4, true), makeBill('due', 6)];
+    const kept = timelineBills(bills, TODAY, new Set(['paid']));
+    expect(kept.map(({bill}) => bill.id)).toEqual(['paid', 'due']);
+  });
+
+  it('returns nothing for no bills or none left to pay', () => {
+    expect(timelineBills([], TODAY)).toEqual([]);
+    expect(timelineBills([makeBill('a', 3, true), makeBill('b', 8, true)], TODAY)).toEqual([]);
+  });
+
+  it('orders what it returns by days until due', () => {
+    const bills = [makeBill('c', 11), makeBill('a', 1), makeBill('b', 4)];
+    expect(timelineBills(bills, TODAY).map(({off}) => off)).toEqual([1, 4, 11]);
+  });
+});
 
 describe('layoutTimeline', () => {
   it('positions nodes in 9..91, spaced, payday below and last on tie', () => {
