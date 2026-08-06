@@ -64,6 +64,18 @@ describe('goalPerPaycheck', () => {
   });
 });
 
+describe('goalChecks', () => {
+  it('divides by the cycle length the cadence actually has', () => {
+    // 280 days out -> semimonthly is a 15-day cycle: floor(280/15) = 18, not
+    // the 20 that treating it as biweekly gives. Weekly floor(280/7) = 40,
+    // monthly floor(280/30) = 9.
+    const goal = makeGoal({target: 2400, saved: 860, per: 85, due: '2027-04-22'});
+    expect(goalChecks(goal, 'semimonthly', TODAY)).toBe(18);
+    expect(goalChecks(goal, 'weekly', TODAY)).toBe(40);
+    expect(goalChecks(goal, 'monthly', TODAY)).toBe(9);
+  });
+});
+
 describe('goalPerMonth', () => {
   it('converts cadence per to monthly when no due date', () => {
     // ceil(40 * 30.44/14) = ceil(86.97) = 87
