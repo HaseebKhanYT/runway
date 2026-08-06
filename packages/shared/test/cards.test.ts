@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
   cardPaymentDue,
   cardPaymentSplit,
+  cardUsage,
   effectiveApr,
   minPaymentGuess,
   payoffProjection,
@@ -58,6 +59,30 @@ describe('minPaymentGuess', () => {
   it('is 3% with a $25 floor', () => {
     expect(minPaymentGuess(1240)).toBe(38);
     expect(minPaymentGuess(100)).toBe(25);
+  });
+});
+
+describe('cardUsage', () => {
+  it('fills the bar with the balance as a share of the limit', () => {
+    const usage = cardUsage(makeCard({limit: 1000, balance: 354.286}));
+    expect(usage.pct).toBeCloseTo(35.4286, 10);
+    expect(usage.overEighty).toBe(false);
+  });
+
+  it('warns from four fifths of the limit', () => {
+    expect(cardUsage(makeCard({limit: 1000, balance: 800})).overEighty).toBe(true);
+  });
+
+  it('clamps a balance past the limit to a full bar', () => {
+    expect(cardUsage(makeCard({limit: 1000, balance: 1500}))).toEqual({pct: 100, overEighty: true});
+  });
+
+  it('is empty rather than NaN for a card with no limit and no balance', () => {
+    expect(cardUsage(makeCard({limit: 0, balance: 0}))).toEqual({pct: 0, overEighty: false});
+  });
+
+  it('is full rather than Infinity for a balance on a card with no limit', () => {
+    expect(cardUsage(makeCard({limit: 0, balance: 100}))).toEqual({pct: 100, overEighty: true});
   });
 });
 

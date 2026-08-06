@@ -69,12 +69,24 @@ export function goalBehind(g: Goal, cadence: Cadence, today: Date): boolean {
   return Math.ceil(goalRemaining(g) / checks) > g.per + 0.5;
 }
 
-/** Progress-bar split between card-financed and paycheck-saved portions. */
+/**
+ * Progress-bar split between card-financed and paycheck-saved portions.
+ *
+ * The target is the natural basis, but nothing stops it being zero, and
+ * dividing by it hands the bar `Infinity` — which clamps to a wholly financed
+ * bar beneath a card whose own legend still reads "set aside from paychecks".
+ * A goal whose target is not positive already passes `goalStatus`'s
+ * `saved >= target` test and reads "Fully funded", so the money that is
+ * actually in it splits by its own composition instead. A goal with nothing
+ * in it has nothing to draw.
+ */
 export function goalBarSplit(g: Goal): {finPct: number; payPct: number} {
   const finPart = Math.min(g.financed || 0, g.saved);
   const payPart = Math.max(0, g.saved - finPart);
-  const finPct = Math.min(100, (finPart / g.target) * 100);
-  const payPct = Math.min(Math.max((payPart / g.target) * 100, 0), 100 - finPct);
+  const basis = g.target > 0 ? g.target : g.saved;
+  if (basis <= 0) return {finPct: 0, payPct: 0};
+  const finPct = Math.min(100, (finPart / basis) * 100);
+  const payPct = Math.min(Math.max((payPart / basis) * 100, 0), 100 - finPct);
   return {finPct, payPct};
 }
 

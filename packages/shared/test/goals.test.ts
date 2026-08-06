@@ -128,6 +128,29 @@ describe('goalBarSplit', () => {
     const goal = makeGoal({target: 1000, saved: 500, financed: 300});
     expect(goalBarSplit(goal)).toEqual({finPct: 30, payPct: 20});
   });
+
+  it('splits what is saved when there is no target to divide by', () => {
+    // Dividing by zero made finPct Infinity, which clamped to a wholly
+    // financed bar under a card reading "$300.00 set aside from paychecks".
+    expect(goalBarSplit(makeGoal({target: 0, saved: 500, financed: 200}))).toEqual({
+      finPct: 40,
+      payPct: 60,
+    });
+  });
+
+  it('treats a negative target the same as none at all', () => {
+    expect(goalBarSplit(makeGoal({target: -100, saved: 500, financed: 200}))).toEqual({
+      finPct: 40,
+      payPct: 60,
+    });
+  });
+
+  it('draws nothing for a goal with neither a target nor savings', () => {
+    expect(goalBarSplit(makeGoal({target: 0, saved: 0, financed: 0}))).toEqual({
+      finPct: 0,
+      payPct: 0,
+    });
+  });
 });
 
 describe('spareMonthly', () => {
