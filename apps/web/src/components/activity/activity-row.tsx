@@ -3,7 +3,7 @@
 import {type AppState, type Txn} from '@runway/shared';
 import {catHue} from '../../lib/category-colors';
 import {formatShortDate, formatMoney} from '../../lib/format';
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useFlow} from '../../lib/queries';
 
 function whenLabel(off: number, today: Date): string {
@@ -42,12 +42,43 @@ export function ActivityRow({
     method: 'DELETE',
   }));
 
+  // Deleting a transaction is a two-tap arm-and-confirm, as in Reset app data.
+  const [armed, setArmed] = useState(false);
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlight = useRef(false);
+
+  /** Clearing the pending timer matters: otherwise a stale timer disarms a re-arm. */
+  const disarm = () => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    disarmTimer.current = null;
+    setArmed(false);
+  };
+
+  const arm = () => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    setArmed(true);
+    disarmTimer.current = setTimeout(() => {
+      disarmTimer.current = null;
+      setArmed(false);
+    }, 4000);
+  };
+
+  useEffect(
+    () => () => {
+      if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    },
+    [],
+  );
+
   const positive = txn.amount > 0;
 
   return (
     <div>
       <div
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          disarm();
+          setOpen(!open);
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -183,18 +214,40 @@ export function ActivityRow({
               </button>
             )}
             <button
-              onClick={() => remove.mutate()}
+              onClick={() => {
+                if (!armed) {
+                  arm();
+                  return;
+                }
+                if (inFlight.current) return;
+                inFlight.current = true;
+                remove.mutate(undefined, {
+                  onSuccess: disarm,
+                  onSettled: () => {
+                    inFlight.current = false;
+                  },
+                });
+              }}
+              disabled={remove.isPending}
               style={{
-                border: '1px solid #e2cfc0',
                 borderRadius: 10,
                 padding: '6px 10px',
                 fontSize: 12,
                 fontWeight: 650,
-                color: 'var(--danger)',
-                background: 'var(--surface)',
+                ...(armed
+                  ? {
+                      border: '1px solid var(--danger)',
+                      color: '#fff',
+                      background: 'var(--danger)',
+                    }
+                  : {
+                      border: '1px solid #e2cfc0',
+                      color: 'var(--danger)',
+                      background: 'var(--surface)',
+                    }),
               }}
             >
-              Delete
+              {armed ? 'Tap again to confirm' : 'Delete'}
             </button>
           </span>
           {picking && (
