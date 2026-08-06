@@ -5,8 +5,12 @@ import {formatShortDate, formatMoney, ordinalSuffix} from '../../../lib/format';
 import {useState, type DragEvent, type TouchEvent} from 'react';
 import {useModals} from '../../../components/modals/modal-context';
 import ui from '../../../components/ui/ui.module.css';
+import {canDeleteBill} from '../../../lib/bill-actions';
 import {useAppState, useFlow} from '../../../lib/queries';
 import {useMedia} from '../../../lib/use-media';
+
+/** Width of one swipe action button — the row slides by one width per action. */
+const SWIPE_ACTION_WIDTH = 70;
 
 const SUB_PRESETS = [
   {name: 'Spotify', amount: 11.99},
@@ -71,7 +75,11 @@ function BillRow({
   const unpay = useFlow<void>(() => ({path: `/bills/${bill.id}/unpay`}));
   const remove = useFlow<void>(() => ({path: `/bills/${bill.id}`, method: 'DELETE'}));
 
-  const swipeMax = bill.kind === 'debt' ? 70 : 140;
+  // The row only slides far enough to reveal the actions that actually render:
+  // Edit is withheld from every debt bill, Delete from a card's payment bill —
+  // which leaves that row with nothing to reveal, so it must not move at all.
+  const swipeMax =
+    SWIPE_ACTION_WIDTH * [bill.kind !== 'debt', canDeleteBill(bill)].filter(Boolean).length;
   const today = new Date();
 
   const toggle = () => {
@@ -82,6 +90,7 @@ function BillRow({
   const tag = bill.personal ? '0% · personal' : bill.cycle === 'yearly' ? 'yearly' : null;
 
   const onTouchStart = (e: TouchEvent) => {
+    if (swipeMax === 0) return;
     setTouchStart({x: e.touches[0].clientX, y: e.touches[0].clientY});
   };
   const onTouchMove = (e: TouchEvent) => {
@@ -128,18 +137,20 @@ function BillRow({
               Edit
             </button>
           )}
-          <button
-            onClick={() => remove.mutate()}
-            style={{
-              width: 70,
-              background: 'var(--danger)',
-              color: '#fff',
-              fontSize: 12.5,
-              fontWeight: 650,
-            }}
-          >
-            Delete
-          </button>
+          {canDeleteBill(bill) && (
+            <button
+              onClick={() => remove.mutate()}
+              style={{
+                width: 70,
+                background: 'var(--danger)',
+                color: '#fff',
+                fontSize: 12.5,
+                fontWeight: 650,
+              }}
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
       <div
@@ -228,7 +239,7 @@ function BillRow({
         <span className="tnum" style={{fontSize: 15, fontWeight: 650}}>
           {formatMoney(bill.amount)}
         </span>
-        {!isMobile && (
+        {!isMobile && canDeleteBill(bill) && (
           <button
             onClick={() => remove.mutate()}
             aria-label={`Delete ${bill.name}`}
