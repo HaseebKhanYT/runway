@@ -31,6 +31,24 @@ export function minPaymentGuess(balance: number): number {
   return Math.max(25, Math.ceil(balance * 0.03));
 }
 
+type UsageFields = Pick<Card, 'balance' | 'limit'>;
+
+/**
+ * How full a card's usage bar is, and whether it has crossed the four-fifths
+ * mark the tile warns at. The limit is typed in by hand and can be zero, which
+ * makes the share `Infinity` on a card carrying anything and `NaN` on an empty
+ * one — and a `NaN` width is dropped by the CSSOM silently rather than refused
+ * loudly, so the bar reads as untouched. A card with no limit recorded has
+ * used all of what it has the moment it carries a balance.
+ */
+export function cardUsage(c: UsageFields): {pct: number; overEighty: boolean} {
+  if (c.limit <= 0) return {pct: c.balance > 0 ? 100 : 0, overEighty: c.balance > 0};
+  return {
+    pct: Math.min(100, (c.balance / c.limit) * 100),
+    overEighty: c.balance / c.limit >= 0.8,
+  };
+}
+
 type PlanFields = Pick<Card, 'balance' | 'planInstallment' | 'planMonthsLeft'>;
 
 /** Everything the payment rules read off a card, as plain numbers. */

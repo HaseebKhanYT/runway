@@ -1,6 +1,6 @@
 'use client';
 
-import {daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
+import {cardUsage, daysUntil, type AppState, type Card, type CardReward} from '@runway/shared';
 import {formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
@@ -80,8 +80,7 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
 
   const paymentBill = state.bills.find((b) => b.cardId === card.id);
   const line = cardLine(card, paymentBill, today);
-  const pct = Math.min(100, (card.balance / card.limit) * 100);
-  const overEighty = card.balance / card.limit >= 0.8;
+  const {pct, overEighty} = cardUsage(card);
 
   const updatedDays = Math.max(
     0,
