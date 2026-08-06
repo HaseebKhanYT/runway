@@ -4,6 +4,7 @@ import {useUser} from '@clerk/nextjs';
 import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/shared';
 import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
+import {describeOnboardingFailure} from '../../lib/onboarding-submit';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand-mark';
 import ui from '../ui/ui.module.css';
@@ -127,6 +128,11 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
       ? `${CADENCE_LABELS[cadence]} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
       : 'Pick the date your next paycheck lands so Runway can count down to it.';
 
+  // Nothing else reads the completion mutation's failure: `useFlow`'s `onError`
+  // only rolls back an optimistic patch, and this call site passes none, so
+  // every refusal was silent until it was rendered here (#54).
+  const submitFailure = complete.isError ? describeOnboardingFailure(complete.error) : null;
+
   const stepCard = (heading: string, sub: string, body: React.ReactNode) => (
     <div
       style={{
@@ -142,7 +148,12 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     >
       <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
         <button
-          onClick={() => setStep(step - 1)}
+          onClick={() => {
+            // A refusal the user has gone back to fix must not still be sitting
+            // under the button when they return to step 5.
+            complete.reset();
+            setStep(step - 1);
+          }}
           aria-label="Back"
           style={{
             width: 30,
@@ -563,8 +574,18 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                 disabled={pickedCats.size === 0 || complete.isPending}
                 onClick={() => complete.mutate(undefined, {onSuccess: onExit})}
               >
-                {pickedCats.size === 0 ? 'Pick at least one' : 'Show me my number'}
+                {complete.isPending
+                  ? 'Working out your number…'
+                  : pickedCats.size === 0
+                    ? 'Pick at least one'
+                    : 'Show me my number'}
               </button>
+              {submitFailure && (
+                <div role="alert" style={{fontSize: 12, color: 'var(--danger)', lineHeight: 1.45}}>
+                  <div style={{fontWeight: 650}}>{submitFailure.headline}</div>
+                  <div>{submitFailure.detail}</div>
+                </div>
+              )}
             </>,
           )}
 
