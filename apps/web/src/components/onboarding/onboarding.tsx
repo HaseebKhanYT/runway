@@ -392,10 +392,10 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   ))}
                 </div>
               )}
-              <div style={{display: 'flex', gap: 6}}>
+              <div style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}>
                 <input
                   className={ui.input}
-                  style={{flex: 2}}
+                  style={{flex: '2 1 120px'}}
                   placeholder="Rent, electric…"
                   value={billName}
                   onChange={(e) => setBillName(e.target.value)}
@@ -403,7 +403,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                 />
                 <input
                   className={`${ui.input} tnum`}
-                  style={{flex: 1}}
+                  style={{flex: '1 1 70px'}}
                   inputMode="decimal"
                   placeholder="950"
                   value={billAmountRaw}
@@ -412,7 +412,7 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                 />
                 <input
                   className={`${ui.input} tnum`}
-                  style={{flex: 1}}
+                  style={{flex: '1 1 70px'}}
                   inputMode="numeric"
                   placeholder="due 15"
                   value={billDueRaw}
