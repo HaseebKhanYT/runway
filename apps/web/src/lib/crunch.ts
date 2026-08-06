@@ -10,6 +10,7 @@ import {
   type RunwaySummary,
 } from '@runway/shared';
 import {formatShortDate, formatMoney} from './format';
+import {livePromo} from './promo';
 
 export interface CrunchGoalLever {
   goal: Goal;
@@ -137,15 +138,20 @@ export function computeCrunch(
     .map((c) => {
       const headroom = Math.floor(c.limit - c.balance);
       const advance = Math.min(rem, headroom);
-      const eff = effectiveApr(c, today);
-      const isPromo = eff === 0;
-      const interest = Math.max(1, Math.round((advance * c.apr) / 1200));
+      const promo = livePromo(c, today);
+      // The rate this advance would actually be billed at, which is the rate
+      // the row was sorted on. Quoting `c.apr` here priced a live promotion at
+      // the rate it has not reverted to yet (#25); the zero arm keeps the
+      // $1/mo floor from inventing interest a 0% card cannot charge.
+      const eff = promo ? promo.rate : c.apr;
+      const interest = eff === 0 ? 0 : Math.max(1, Math.round((advance * eff) / 1200));
       return {
         card: c,
-        title: `Cover the rest with ${c.name} · ${isPromo ? '0% promo' : `${c.apr}% APR`}`,
-        sub: isPromo
-          ? `≈${formatMoney(advance)} advanced · $0 interest if cleared before the promo ends`
-          : `≈${formatMoney(interest)}/mo interest until you clear it`,
+        title: `Cover the rest with ${c.name} · ${promo ? `${promo.rate}% promo` : `${c.apr}% APR`}`,
+        sub:
+          promo != null && interest === 0
+            ? `≈${formatMoney(advance)} advanced · $0 interest if cleared before the promo ends`
+            : `≈${formatMoney(interest)}/mo interest until you clear it`,
         headroom,
       };
     });
