@@ -1,7 +1,9 @@
 'use client';
 
 import {daysUntil, type AppState} from '@runway/shared';
+import Link from 'next/link';
 import {useRef, useState} from 'react';
+import {railEmptyState} from '../../lib/empty-states';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {billNodeLabel, layoutTimeline, paydayNodeLabel} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
@@ -15,6 +17,8 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
   const fadeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const {nodes} = layoutTimeline(state.bills, vm.runway.daysToPayday, today, fading);
+  // Payday is always laid out, so a rail of nothing but payday is an empty one.
+  const empty = nodes.every((n) => n.payday) ? railEmptyState(state.bills) : null;
 
   const onBillClick = (billId: string) => {
     const bill = state.bills.find((b) => b.id === billId);
@@ -69,6 +73,36 @@ export function RunwayHorizontal({state, vm}: {state: AppState; vm: ViewModel}) 
           </div>
           <div style={{width: 16, height: 16, borderRadius: '50%', background: 'var(--ink)'}} />
         </div>
+
+        {/* Sits in the upper half so it clears the rail, the Today label to its
+            left and the payday label below. */}
+        {empty && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 48,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 320,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{fontSize: 12.5, color: 'var(--muted)'}}>{empty.line}</div>
+            <Link
+              href="/bills"
+              style={{
+                display: 'inline-block',
+                marginTop: 7,
+                fontSize: 12,
+                fontWeight: 650,
+                color: 'var(--accent)',
+                textDecoration: 'none',
+              }}
+            >
+              {`${empty.cta} →`}
+            </Link>
+          </div>
+        )}
 
         {nodes.map((node) => {
           if (node.payday) {
