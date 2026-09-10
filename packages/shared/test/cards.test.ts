@@ -41,6 +41,13 @@ describe('effectiveApr', () => {
     expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-07-01'}), TODAY)).toBe(17.9);
     expect(effectiveApr(makeCard({}), TODAY)).toBe(17.9);
   });
+  it('counts the promo end date itself as live', () => {
+    expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-07-16'}), TODAY)).toBe(0);
+    expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-07-17'}), TODAY)).toBe(0);
+  });
+  it('expires the day after the promo end date', () => {
+    expect(effectiveApr(makeCard({promoRate: 0, promoEnd: '2026-07-15'}), TODAY)).toBe(17.9);
+  });
 });
 
 describe('payoffProjection', () => {

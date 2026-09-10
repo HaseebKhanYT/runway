@@ -4,7 +4,7 @@ import type {Card, CardReward} from './types';
 
 /** Effective APR — promo rate while the promo is still live (catalog §3.7). */
 export function effectiveApr(c: Card, today: Date): number {
-  if (c.promoRate != null && c.promoEnd && daysUntil(c.promoEnd, today) > 0) {
+  if (c.promoRate != null && c.promoEnd && daysUntil(c.promoEnd, today) >= 0) {
     return c.promoRate;
   }
   return c.apr;
