@@ -1,8 +1,10 @@
 'use client';
 
 import {useClerk} from '@clerk/nextjs';
+import {maxDaysToPayday, nextPayProblem, toIsoDate} from '@runway/shared';
 import {CADENCE_OPTIONS, formatMoney} from '../../../lib/format';
 import {parseMoneyInput} from '../../../lib/money-input';
+import {commitPayday} from '../../../lib/payday-input';
 import Link from 'next/link';
 import {useState, type ReactNode} from 'react';
 import {Onboarding} from '../../../components/onboarding/onboarding';
@@ -45,6 +47,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [balanceRaw, setBalanceRaw] = useState<string | null>(null);
   const [payRaw, setPayRaw] = useState<string | null>(null);
+  const [payDateRaw, setPayDateRaw] = useState<string | null>(null);
   const [balanceProblem, setBalanceProblem] = useState<string | null>(null);
   const [payProblem, setPayProblem] = useState<string | null>(null);
 
@@ -74,6 +77,13 @@ export default function SettingsPage() {
         day: 'numeric',
       })
     : '—';
+
+  // The same rule onboarding states, computed from the draft alone. A payday on
+  // file slides into the past whenever the user simply does not open the app —
+  // `daysToNextPayday` rolls it forward — so only a date being typed right now
+  // is a claim worth refusing (#147).
+  const today = new Date();
+  const payDateProblem = payDateRaw ? nextPayProblem(payDateRaw, profile.cadence, today) : null;
 
   const settingRow = (label: string, sub: string, control: ReactNode, problem?: string | null) => (
     <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
@@ -209,6 +219,7 @@ export default function SettingsPage() {
             'Pay cycle',
             'how often you get paid',
             <span style={{fontSize: 12, color: 'var(--muted)'}}>next {paydayLabel}</span>,
+            payDateProblem,
           )}
           <div
             style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7, marginTop: 10}}
@@ -224,12 +235,32 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+          {/* Commits on blur like the money fields above: writing on every
+              `change` PATCHed a half-typed year, and the response replacing the
+              cached state then blanked the field mid-edit (#147). */}
           <input
             type="date"
             className={ui.input}
             style={{marginTop: 10}}
-            value={profile.nextPay ?? ''}
-            onChange={(e) => patchProfile.mutate({nextPay: e.target.value || null})}
+            aria-invalid={payDateProblem !== null}
+            value={payDateRaw ?? profile.nextPay ?? ''}
+            min={toIsoDate(today)}
+            max={toIsoDate(today, maxDaysToPayday(profile.cadence))}
+            onChange={(e) => setPayDateRaw(e.target.value)}
+            onBlur={() => {
+              const commit = commitPayday(payDateRaw, profile.nextPay, profile.cadence, today);
+              // Keep the text on screen: the user has to see it to fix it.
+              if (commit.status === 'invalid') return;
+              if (commit.status === 'unchanged') {
+                setPayDateRaw(null);
+                return;
+              }
+              // Hold the typed date on screen until the round trip settles.
+              // Dropping the draft first falls back to `profile.nextPay`, which
+              // is the date being replaced until the response lands, so a saved
+              // edit snapped back to the old day before showing the new one.
+              patchProfile.mutate({nextPay: commit.value}, {onSettled: () => setPayDateRaw(null)});
+            }}
           />
         </div>
       </Panel>
