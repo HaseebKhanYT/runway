@@ -1,6 +1,7 @@
 'use client';
 
 import {type AppState} from '@runway/shared';
+import {categoryBarPct} from '../../lib/category-bar';
 import {formatMoney} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
@@ -36,12 +37,7 @@ export function CategoriesPanel({state}: {state: AppState}) {
       <div style={{display: 'flex', flexDirection: 'column', gap: 13}}>
         {state.cats.map((cat) => {
           const over = cat.budget > 0 && cat.spent > cat.budget;
-          const pct =
-            cat.budget > 0
-              ? Math.min(100, (cat.spent / cat.budget) * 100)
-              : cat.spent > 0
-                ? 100
-                : 0;
+          const pct = categoryBarPct(cat.spent, cat.budget);
           return (
             <div key={cat.id}>
               <div

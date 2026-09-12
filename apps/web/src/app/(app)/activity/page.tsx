@@ -129,7 +129,11 @@ export default function ActivityPage() {
             color: 'var(--muted)',
           }}
         >
-          Nothing matches — try a different filter or search.
+          {/* An empty ledger and an over-narrow filter look identical here, but
+              only one of them is the user's to fix (#153). */}
+          {state.txns.length === 0
+            ? 'No activity yet — spending and income will show up here as you log it.'
+            : 'Nothing matches — try a different filter or search.'}
         </div>
       ) : (
         <div
