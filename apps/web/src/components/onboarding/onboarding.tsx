@@ -2,6 +2,7 @@
 
 import {useUser} from '@clerk/nextjs';
 import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/shared';
+import {parseAprInput} from '../../lib/apr-input';
 import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
 import {useFlow} from '../../lib/queries';
@@ -96,9 +97,10 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   const addCard = () => {
     const owe = parseFloat(cardOweRaw) || 0;
     const limit = parseFloat(cardLimitRaw) || 0;
-    const apr = parseFloat(cardAprRaw) || 0;
-    if (!cardName.trim() || limit <= 0) return;
-    setCards([...cards, {name: cardName.trim(), balance: owe, limit, apr}]);
+    // Guarded here and not only on the button: the APR input adds on Enter,
+    // which a disabled button would not stop (#59).
+    if (!cardName.trim() || limit <= 0 || aprInput.status === 'invalid') return;
+    setCards([...cards, {name: cardName.trim(), balance: owe, limit, apr: aprInput.value}]);
     setCardName('');
     setCardOweRaw('');
     setCardLimitRaw('');
@@ -126,6 +128,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     : nextPay
       ? `${CADENCE_LABELS[cadence]} · next on ${new Date(nextPay + 'T00:00:00').toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}. On payday the app asks whether it landed.`
       : 'Pick the date your next paycheck lands so Runway can count down to it.';
+  // Step 4's APR rides in the same request and is capped by the same schema.
+  const aprInput = parseAprInput(cardAprRaw);
 
   const stepCard = (heading: string, sub: string, body: React.ReactNode) => (
     <div
@@ -518,15 +522,27 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
                   inputMode="decimal"
                   placeholder="APR %"
                   value={cardAprRaw}
+                  aria-invalid={aprInput.status === 'invalid'}
                   onChange={(e) => setCardAprRaw(e.target.value.replace(/[^0-9.]/g, ''))}
                   onKeyDown={(e) => e.key === 'Enter' && addCard()}
                 />
-                <button className={ui.btnGhost} onClick={addCard}>
+                <button
+                  className={ui.btnGhost}
+                  disabled={aprInput.status === 'invalid'}
+                  onClick={addCard}
+                >
                   Add
                 </button>
               </div>
-              <div style={{fontSize: 11.5, color: 'var(--muted)'}}>
-                Rough numbers are fine — you can fine-tune APR and due dates later.
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: aprInput.status === 'invalid' ? 'var(--danger)' : 'var(--muted)',
+                }}
+              >
+                {aprInput.status === 'invalid'
+                  ? aprInput.message
+                  : 'Rough numbers are fine — you can fine-tune APR and due dates later.'}
               </div>
               <button className={ui.btnPrimary} onClick={() => setStep(5)}>
                 {cards.length > 0
