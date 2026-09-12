@@ -2,7 +2,7 @@
 
 import {type AppState} from '@runway/shared';
 import {formatMoney} from '../../lib/format';
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useFlow} from '../../lib/queries';
 import {useModals} from '../modals/modal-context';
 import ui from '../ui/ui.module.css';
@@ -12,6 +12,34 @@ export function CategoriesPanel({state}: {state: AppState}) {
   const {openModal} = useModals();
   const [manage, setManage] = useState(false);
   const remove = useFlow<string>((id) => ({path: `/categories/${id}`, method: 'DELETE'}));
+
+  // Deleting a category is a two-tap arm-and-confirm, as in Reset app data.
+  const [armedId, setArmedId] = useState<string | null>(null);
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlight = useRef(false);
+
+  /** Clearing the pending timer matters: otherwise row A's timer disarms row B. */
+  const disarm = () => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    disarmTimer.current = null;
+    setArmedId(null);
+  };
+
+  const arm = (id: string) => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    setArmedId(id);
+    disarmTimer.current = setTimeout(() => {
+      disarmTimer.current = null;
+      setArmedId(null);
+    }, 4000);
+  };
+
+  useEffect(
+    () => () => {
+      if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    },
+    [],
+  );
 
   return (
     <div className={ui.card}>
@@ -28,7 +56,10 @@ export function CategoriesPanel({state}: {state: AppState}) {
         </div>
         <button
           style={{fontSize: 12, fontWeight: 650, color: 'var(--accent)'}}
-          onClick={() => setManage(!manage)}
+          onClick={() => {
+            disarm();
+            setManage(!manage);
+          }}
         >
           {manage ? 'Done' : 'Edit'}
         </button>
@@ -36,6 +67,7 @@ export function CategoriesPanel({state}: {state: AppState}) {
       <div style={{display: 'flex', flexDirection: 'column', gap: 13}}>
         {state.cats.map((cat) => {
           const over = cat.budget > 0 && cat.spent > cat.budget;
+          const armed = armedId === cat.id;
           const pct =
             cat.budget > 0
               ? Math.min(100, (cat.spent / cat.budget) * 100)
@@ -74,11 +106,36 @@ export function CategoriesPanel({state}: {state: AppState}) {
                     </button>
                     {!cat.locked && (
                       <button
-                        style={{fontSize: 14, color: 'var(--danger)'}}
-                        aria-label={`Delete ${cat.name}`}
-                        onClick={() => remove.mutate(cat.id)}
+                        style={
+                          armed
+                            ? {
+                                padding: '3px 8px',
+                                borderRadius: 8,
+                                fontSize: 11.5,
+                                fontWeight: 650,
+                                background: 'var(--danger)',
+                                color: '#fff',
+                              }
+                            : {fontSize: 14, color: 'var(--danger)'}
+                        }
+                        aria-label={armed ? `Confirm deleting ${cat.name}` : `Delete ${cat.name}`}
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (!armed) {
+                            arm(cat.id);
+                            return;
+                          }
+                          if (inFlight.current) return;
+                          inFlight.current = true;
+                          remove.mutate(cat.id, {
+                            onSuccess: disarm,
+                            onSettled: () => {
+                              inFlight.current = false;
+                            },
+                          });
+                        }}
                       >
-                        ✕
+                        {armed ? 'Delete?' : '✕'}
                       </button>
                     )}
                   </span>
