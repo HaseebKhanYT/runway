@@ -568,7 +568,9 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
             </>,
           )}
 
-        <div style={{fontSize: 12, color: 'var(--muted-2)'}}>Everything stays on this device.</div>
+        <div style={{fontSize: 12, color: 'var(--muted-2)'}}>
+          Your answers are saved to your Runway account.
+        </div>
         {onExit && (
           <button
             style={{
