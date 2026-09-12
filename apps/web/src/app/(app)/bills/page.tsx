@@ -49,6 +49,11 @@ interface BillForm {
   payFrom: string;
 }
 
+/** A card payment bill is owned by its card, so it is not editable here. */
+function canEditBill(bill: Bill) {
+  return bill.kind !== 'debt';
+}
+
 function BillRow({
   bill,
   state,
@@ -71,7 +76,7 @@ function BillRow({
   const unpay = useFlow<void>(() => ({path: `/bills/${bill.id}/unpay`}));
   const remove = useFlow<void>(() => ({path: `/bills/${bill.id}`, method: 'DELETE'}));
 
-  const swipeMax = bill.kind === 'debt' ? 70 : 140;
+  const swipeMax = canEditBill(bill) ? 140 : 70;
   const today = new Date();
 
   const toggle = () => {
@@ -111,7 +116,7 @@ function BillRow({
             justifyContent: 'flex-end',
           }}
         >
-          {bill.kind !== 'debt' && (
+          {canEditBill(bill) && (
             <button
               onClick={() => {
                 setTx(0);
@@ -228,6 +233,16 @@ function BillRow({
         <span className="tnum" style={{fontSize: 15, fontWeight: 650}}>
           {formatMoney(bill.amount)}
         </span>
+        {canEditBill(bill) && (
+          <button
+            className={ui.textBtn}
+            onClick={onEdit}
+            aria-label={`Edit ${bill.name}`}
+            style={{flex: 'none'}}
+          >
+            Edit
+          </button>
+        )}
         {!isMobile && (
           <button
             onClick={() => remove.mutate()}
