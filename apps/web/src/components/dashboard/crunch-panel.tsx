@@ -174,7 +174,20 @@ export function CrunchPanel({state, vm}: {state: AppState; vm: ViewModel}) {
           flexWrap: 'wrap',
         }}
       >
-        <div style={{fontSize: 13, fontWeight: 650, color: crunch.gapColor}}>{crunch.gapLine}</div>
+        {/* Live inline rather than through the shell's region (#88). The levers
+            above are local `useState`, so this is the one figure on the page
+            that recomputes with no round trip and no `AppState` change for the
+            shell to notice. Measured in a browser: toggling a goal lever moves
+            this line and nothing else — the headline `$916.00 short` is the
+            whole shortfall and holds still, which is why the announcement is
+            here and not there. */}
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          style={{fontSize: 13, fontWeight: 650, color: crunch.gapColor}}
+        >
+          {crunch.gapLine}
+        </div>
         <button
           disabled={!crunch.covered || lock.isPending}
           onClick={() => lock.mutate()}
