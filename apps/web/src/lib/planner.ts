@@ -1,10 +1,14 @@
 import {
   cardPaymentDue,
   computeRunway,
+  cycleDays,
+  cyclesPerMonth,
   daysUntil,
   effectiveApr,
   goalPerPaycheck,
+  perPaycheckFor,
   type AppState,
+  type Cadence,
   type Card,
   type Goal,
   type RunwaySummary,
@@ -81,9 +85,17 @@ export interface PlanSummary {
   ctaEnabled: boolean;
 }
 
-const PAYCHECKS_PER_MONTH = 2;
 /** How far the term search looks before it calls a plan unaffordable. */
 const MAX_TERM_MONTHS = 60;
+
+/**
+ * How many passes the card sizing loop gets to converge on a principal. The
+ * step only ever approaches the answer from below, so this budget is how much
+ * convergence the loop is allowed to buy rather than a guard against runaway:
+ * cut it and the loop stops a few dollars of principal short and refuses a plan
+ * the card could in fact carry.
+ */
+const MAX_SIZING_PASSES = 20;
 
 /** Local-parts ISO date, matching how the server stamps a plan's due date. */
 function isoLocal(d: Date): string {
@@ -150,14 +162,20 @@ function projectState(
   );
 
   const due = new Date(today.getFullYear(), today.getMonth() + months, 1);
+  const dueIso = isoLocal(due);
   const planned: Goal = {
     id: '__planned',
     name: input.name || 'This plan',
     target: input.target,
     saved: financed,
-    per: Math.max(0, Math.ceil((input.target - financed) / (months * PAYCHECKS_PER_MONTH))),
+    // The shared `Goal` type requires `per`, and this goal is handed to the
+    // real `computeRunway`, so the field cannot simply go. Computing it with
+    // the same helper `goalPerPaycheck` reads it back with — over the same
+    // `dueIso` printed beside it — is what stops the stored figure and the date
+    // it is derived from disagreeing.
+    per: perPaycheckFor(Math.max(0, input.target - financed), dueIso, state.profile.cadence, today),
     note: '',
-    due: isoLocal(due),
+    due: dueIso,
     necessity: input.kind === 'necessity',
     paused: null,
     behind: false,
@@ -193,23 +211,37 @@ function evaluate(
   // Charge the card the shortfall the lever advertises and no more (#17),
   // bounded by the headroom it actually has and by the plan itself.
   //
-  // Turning a per-paycheck shortfall back into a principal is not exact: the
-  // installment lands in the bills, and how much of it falls before payday
-  // depends on the card's due day. So the figure is re-measured and topped up
-  // rather than trusted first time — otherwise the lever stops a few cents
-  // short of the goal it was chosen to reach, and the plan reads as refused
-  // over $0.28. The residual shrinks fast; this settles in two or three
-  // passes and is capped either way.
+  // Each step is a first-order estimate that ignores its own feedback: the
+  // installment the new principal buys lands in the bills, so part of the
+  // shortfall the step was sized to close is pushed straight back. That is why
+  // the figure is re-measured and topped up rather than trusted first time —
+  // otherwise the lever stops short of the goal it was chosen to reach and the
+  // plan reads as refused over $0.28. It also means the iteration only ever
+  // approaches the answer from below, never past it, so the pass budget is a
+  // convergence allowance and not a formality: at four passes a monthly plan
+  // was still refused $3.48 a paycheck short of a term it could in fact carry.
+  // The loop is capped either way, by the budget and by `ceiling`.
+  //
+  // `residual` is per paycheck and `months` is calendar months, so the step
+  // between them is `cyclesPerMonth` — paychecks a month, all four of them.
+  // A flat 2 sized each step at under half what a weekly card's residual implies
+  // and at twice what a monthly card's does. That is the length of the stride,
+  // not the destination: both walk up from below, so an over-long stride
+  // overshoots the principal on one plan and, once the budget runs out, stops
+  // short of it on another.
   let financed = 0;
   if (card) {
     const ceiling = Math.min(
       Math.max(0, Math.floor(card.limit - card.balance)),
       Math.ceil(input.target),
     );
-    for (let pass = 0; pass < 4; pass++) {
+    for (let pass = 0; pass < MAX_SIZING_PASSES; pass++) {
       const residual = shortfall(runway);
       if (residual <= 0 || financed >= ceiling) break;
-      const next = Math.min(ceiling, financed + Math.ceil(residual * months * PAYCHECKS_PER_MONTH));
+      const next = Math.min(
+        ceiling,
+        financed + Math.ceil(residual * months * cyclesPerMonth(state.profile.cadence)),
+      );
       if (next <= financed) break;
       financed = next;
       projected = projectState(input, state, financed, months, today);
@@ -321,7 +353,10 @@ export function computePlan(
   const totalCost = financed + interest;
   // The figure the "Earn the rest" lever quotes, hoisted out of the lever list
   // so the same number can be sent to the server and recorded on the plan.
-  const earnMonthly = Math.ceil((remainingGap * PAYCHECKS_PER_MONTH) / 10) * 10;
+  // `remainingGap` is per paycheck and the lever is quoted per month, so the
+  // conversion is `cyclesPerMonth` — the same divisor `spareMonthly` uses for
+  // the surplus read a few inches away on the same screen.
+  const earnMonthly = Math.ceil((remainingGap * cyclesPerMonth(cadence)) / 10) * 10;
 
   const projection = {
     safe: now.runway.safe,
@@ -340,7 +375,7 @@ export function computePlan(
   const covered = projection.effectivePerDay >= 0;
 
   const isNecessity = input.kind === 'necessity';
-  const perLine = buildPerLine(input.kind, per, cap, over, initialGap);
+  const perLine = buildPerLine(input.kind, per, cap, over, initialGap, cadence);
   const perColor = isNecessity
     ? over && !covered
       ? '#c2410c'
@@ -477,8 +512,9 @@ export function computePlan(
   };
 }
 
-function perDayDelta(per: number): number {
-  return Math.round(per / 14);
+/** A per-paycheck set-aside spread over the days that paycheck has to cover. */
+function perDayDelta(per: number, cadence: Cadence): number {
+  return Math.round(per / cycleDays(cadence));
 }
 
 /**
@@ -494,6 +530,7 @@ function buildPerLine(
   cap: number,
   over: boolean,
   initialGap: number,
+  cadence: Cadence,
 ): string {
   const perF = `$${Math.round(per)}`;
   const capF = `$${Math.round(cap)}`;
@@ -501,7 +538,7 @@ function buildPerLine(
     if (over) {
       return `That's ${perF} per paycheck — ${capF} is all a cycle can spare without your daily number going negative. Pick a later month.`;
     }
-    return `That's ${perF} per paycheck — about $${perDayDelta(per)}/day less to spend.`;
+    return `That's ${perF} per paycheck — about $${perDayDelta(per, cadence)}/day less to spend.`;
   }
   if (!over) {
     return `That's ${perF} per paycheck — it fits, and your daily number stays positive.`;
