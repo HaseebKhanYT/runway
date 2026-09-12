@@ -5,6 +5,7 @@ import {maxDaysToPayday, nextPayProblem, toIsoDate, type Cadence} from '@runway/
 import {parseAprInput} from '../../lib/apr-input';
 import {CADENCE_LABELS, CADENCE_OPTIONS, formatMoney, ordinalSuffix} from '../../lib/format';
 import {useState} from 'react';
+import {onboardingBalance, onboardingPaycheck} from '../../lib/onboarding-money';
 import {useFlow} from '../../lib/queries';
 import {BrandMark} from '../brand/brand-mark';
 import ui from '../ui/ui.module.css';
@@ -42,12 +43,24 @@ interface ObCard {
   apr: number;
 }
 
+/**
+ * Stable ids, because the message element is always in the DOM: the input
+ * points at it with `aria-describedby` only while it has something to say.
+ */
+const BALANCE_PROBLEM_ID = 'onboarding-balance-problem';
+const PAY_PROBLEM_ID = 'onboarding-pay-problem';
+
+/** Matches the font size of the hint line each of these two steps already has. */
+const problemStyle = {fontSize: 12, color: 'var(--danger)', lineHeight: 1.45};
+
 /** Six-step first-run flow (catalog §1.9). `onExit` present = launched from Settings. */
 export function Onboarding({onExit}: {onExit?: () => void}) {
   const {user} = useUser();
   const [step, setStep] = useState(0);
   const [balanceRaw, setBalanceRaw] = useState('');
+  const [balanceProblem, setBalanceProblem] = useState<string | null>(null);
   const [payRaw, setPayRaw] = useState('');
+  const [payProblem, setPayProblem] = useState<string | null>(null);
   const [cadence, setCadence] = useState<Cadence>('biweekly');
   const [nextPay, setNextPay] = useState('');
   const [bills, setBills] = useState<ObBill[]>([]);
@@ -61,11 +74,17 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
   const [cardAprRaw, setCardAprRaw] = useState('');
   const [pickedCats, setPickedCats] = useState<Set<string>>(new Set(['eat', 'gro', 'tra']));
 
+  // `parseFloat` was reading a valid prefix and discarding the rest, so a
+  // typeable `1.2.3` became 1.2 in the gate and again in the payload (#57).
+  const balanceAmount = onboardingBalance(balanceRaw);
+  const payAmount = onboardingPaycheck(payRaw);
+
   const complete = useFlow<void>(() => ({
     path: '/onboarding/complete',
     json: {
-      balance: parseFloat(balanceRaw) || 0,
-      pay: parseFloat(payRaw) || 0,
+      // The value that was judged, not a second parse of the same string.
+      balance: balanceAmount.status === 'ok' ? balanceAmount.value : 0,
+      pay: payAmount.status === 'ok' ? payAmount.value : 0,
       cadence,
       nextPay,
       name: user?.fullName ?? undefined,
@@ -79,8 +98,6 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     },
   }));
 
-  const balance = parseFloat(balanceRaw);
-  const pay = parseFloat(payRaw) || 0;
   const billsSum = bills.reduce((s, b) => s + b.amount, 0);
   const cardsOwed = cards.reduce((s, c) => s + c.balance, 0);
 
@@ -130,6 +147,24 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
       : 'Pick the date your next paycheck lands so Runway can count down to it.';
   // Step 4's APR rides in the same request and is capped by the same schema.
   const aprInput = parseAprInput(cardAprRaw);
+
+  // A blank field leaves Next disabled, exactly as before. Text that cannot be
+  // read as an amount now says so instead of advancing on a truncated number.
+  const leaveBalance = () => {
+    if (balanceAmount.status === 'problem') {
+      setBalanceProblem(balanceAmount.message);
+      return;
+    }
+    if (balanceAmount.status === 'ok') setStep(2);
+  };
+
+  const leavePay = () => {
+    if (payAmount.status === 'problem') {
+      setPayProblem(payAmount.message);
+      return;
+    }
+    if (payAmount.status === 'ok' && nextPay && !payDateProblem) setStep(3);
+  };
 
   const stepCard = (heading: string, sub: string, body: React.ReactNode) => (
     <div
@@ -193,35 +228,45 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
     onChange: (v: string) => void,
     placeholder: string,
     onEnter: () => void,
+    problem: string | null,
+    problemId: string,
   ) => (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 8,
-        borderBottom: '2px solid var(--ink)',
-        paddingBottom: 8,
-      }}
-    >
-      <span style={{fontSize: 22, fontWeight: 600, color: 'var(--muted)'}}>$</span>
-      <input
-        autoFocus
-        inputMode="decimal"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
-        onKeyDown={(e) => e.key === 'Enter' && onEnter()}
-        className="tnum"
+    <div>
+      <div
         style={{
-          fontSize: 30,
-          fontWeight: 700,
-          border: 'none',
-          outline: 'none',
-          background: 'transparent',
-          width: '100%',
-          color: 'var(--ink)',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 8,
+          borderBottom: '2px solid var(--ink)',
+          paddingBottom: 8,
         }}
-      />
+      >
+        <span style={{fontSize: 22, fontWeight: 600, color: 'var(--muted)'}}>$</span>
+        <input
+          autoFocus
+          inputMode="decimal"
+          placeholder={placeholder}
+          value={value}
+          aria-invalid={problem ? true : undefined}
+          aria-describedby={problem ? problemId : undefined}
+          onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+          onKeyDown={(e) => e.key === 'Enter' && onEnter()}
+          className="tnum"
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            width: '100%',
+            color: 'var(--ink)',
+          }}
+        />
+      </div>
+      {/* Always mounted, so the text arriving is what gets announced. */}
+      <div id={problemId} role="alert" style={{...problemStyle, marginTop: problem ? 8 : 0}}>
+        {problem ?? ''}
+      </div>
     </div>
   );
 
@@ -291,16 +336,24 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
             "What's in your account right now?",
             '',
             <>
-              {bigMoneyInput(balanceRaw, setBalanceRaw, '6,000', () => {
-                if (balance >= 0) setStep(2);
-              })}
+              {bigMoneyInput(
+                balanceRaw,
+                (v) => {
+                  setBalanceRaw(v);
+                  setBalanceProblem(null);
+                },
+                '6,000',
+                leaveBalance,
+                balanceProblem,
+                BALANCE_PROBLEM_ID,
+              )}
               <div style={{fontSize: 12, color: 'var(--muted)'}}>
                 Check your bank app. Close is fine, you can fix it later.
               </div>
               <button
                 className={ui.btnPrimary}
-                disabled={!(balance >= 0)}
-                onClick={() => setStep(2)}
+                disabled={balanceAmount.status === 'blank'}
+                onClick={leaveBalance}
               >
                 Next
               </button>
@@ -312,9 +365,17 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
             "What's your paycheck?",
             'Your take-home pay after taxes. This sets how long your runway lasts.',
             <>
-              {bigMoneyInput(payRaw, setPayRaw, '1,700', () => {
-                if (pay > 0 && nextPay && !payDateProblem) setStep(3);
-              })}
+              {bigMoneyInput(
+                payRaw,
+                (v) => {
+                  setPayRaw(v);
+                  setPayProblem(null);
+                },
+                '1,700',
+                leavePay,
+                payProblem,
+                PAY_PROBLEM_ID,
+              )}
               <div>
                 <div className={ui.label}>HOW OFTEN</div>
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7}}>
@@ -353,8 +414,8 @@ export function Onboarding({onExit}: {onExit?: () => void}) {
               </div>
               <button
                 className={ui.btnPrimary}
-                disabled={!(pay > 0) || !nextPay || payDateProblem !== null}
-                onClick={() => setStep(3)}
+                disabled={payAmount.status === 'blank' || !nextPay || payDateProblem !== null}
+                onClick={leavePay}
               >
                 Next
               </button>
