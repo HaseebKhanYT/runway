@@ -1,6 +1,8 @@
 'use client';
 
 import {daysUntil, type AppState} from '@runway/shared';
+import Link from 'next/link';
+import {railEmptyState} from '../../lib/empty-states';
 import {formatShortDate, formatMoney} from '../../lib/format';
 import {spineGap, timelineBills} from '../../lib/timeline';
 import type {ViewModel} from '../../lib/view-model';
@@ -24,6 +26,8 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
     })),
     {kind: 'payday' as const, id: 'payday', off: daysToPayday},
   ].sort((a, b) => a.off - b.off || (a.kind === 'payday' ? 1 : -1));
+
+  const empty = events.some((ev) => ev.kind === 'bill') ? null : railEmptyState(state.bills);
 
   return (
     <div
@@ -174,6 +178,24 @@ export function RunwayVertical({state, vm}: {state: AppState; vm: ViewModel}) {
           );
         })}
       </div>
+      {empty && (
+        <div style={{marginLeft: 9, marginTop: 10}}>
+          <div style={{fontSize: 12.5, color: 'var(--muted)'}}>{empty.line}</div>
+          <Link
+            href="/bills"
+            style={{
+              display: 'inline-block',
+              marginTop: 7,
+              fontSize: 12,
+              fontWeight: 650,
+              color: 'var(--accent)',
+              textDecoration: 'none',
+            }}
+          >
+            {`${empty.cta} →`}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
