@@ -1,6 +1,6 @@
 import type {Bill, Card} from '@runway/shared';
 import {describe, expect, it} from 'vitest';
-import {cardLine, rewardPillColors} from '../src/lib/card-lines';
+import {cardAprTag, cardLine, rewardPillColors} from '../src/lib/card-lines';
 
 const TODAY = new Date('2026-07-16T12:00:00');
 
@@ -80,6 +80,25 @@ describe('cardLine', () => {
     expect(line.color).toBe('#5c5142');
   });
 
+  it('promo ending today still counts down', () => {
+    const line = cardLine(
+      makeCard({balance: 650, promoRate: 0, promoEnd: '2026-07-16', apr: 21.9}),
+      undefined,
+      TODAY,
+    );
+    expect(line.text).toBe('⏳ 0% ends Jul 2026 (1 mo) — clear $650.00 by then or it costs 21.9%');
+    expect(line.color).toBe('#c2410c');
+  });
+
+  it('promo that ended yesterday no longer counts down', () => {
+    const line = cardLine(
+      makeCard({balance: 650, promoRate: 0, promoEnd: '2026-07-15', apr: 21.9}),
+      undefined,
+      TODAY,
+    );
+    expect(line.text).toBe('No due date set — Edit to add one · interest ≈ $12.00/mo at 21.9%');
+  });
+
   it('amortization with a payment bill', () => {
     const line = cardLine(makeCard({}), paymentBill, TODAY);
     expect(line.text).toBe('At $160.00/mo → clear by Apr 2027 · ≈$200.00 interest on the way');
@@ -94,5 +113,31 @@ describe('cardLine', () => {
   it('no due date estimates monthly interest', () => {
     const line = cardLine(makeCard({balance: 1240, apr: 17.9}), undefined, TODAY);
     expect(line.text).toBe('No due date set — Edit to add one · interest ≈ $18.00/mo at 17.9%');
+  });
+});
+
+describe('cardAprTag', () => {
+  it('quotes the promo rate on the promo end date itself', () => {
+    const tag = cardAprTag(makeCard({promoRate: 0, promoEnd: '2026-07-16', apr: 24.99}), TODAY);
+    expect(tag.text).toBe('0% until Jul · then 24.99%');
+    expect(tag.promoLive).toBe(true);
+  });
+
+  it('quotes the real APR the day after the promo ended', () => {
+    const tag = cardAprTag(makeCard({promoRate: 0, promoEnd: '2026-07-15', apr: 24.99}), TODAY);
+    expect(tag.text).toBe('24.99% APR');
+    expect(tag.promoLive).toBe(false);
+  });
+
+  it('quotes the real APR when there is no promo', () => {
+    const tag = cardAprTag(makeCard({promoEnd: null}), TODAY);
+    expect(tag.text).toBe('17.9% APR');
+    expect(tag.promoLive).toBe(false);
+  });
+
+  it('quotes a non-zero promo rate', () => {
+    const tag = cardAprTag(makeCard({promoRate: 4.9, promoEnd: '2026-07-16', apr: 24.99}), TODAY);
+    expect(tag.text).toBe('4.9% until Jul · then 24.99%');
+    expect(tag.promoLive).toBe(true);
   });
 });

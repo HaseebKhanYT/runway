@@ -40,7 +40,7 @@ export function cardLine(
       color: '#c2410c',
     };
   }
-  if (c.promoRate != null && c.promoEnd && daysUntil(c.promoEnd, today) > 0) {
+  if (c.promoRate != null && c.promoEnd && daysUntil(c.promoEnd, today) >= 0) {
     const daysLeft = daysUntil(c.promoEnd, today);
     const months = Math.max(1, Math.round(daysLeft / 30));
     const end = new Date(c.promoEnd + 'T00:00:00');
@@ -67,5 +67,20 @@ export function cardLine(
   return {
     text: `No due date set — Edit to add one · interest ≈ ${formatMoney(monthlyInterest)}/mo at ${c.apr}%`,
     color: '#5c5142',
+  };
+}
+
+/**
+ * The APR chip on a card tile: the promo rate while it is live, else the APR.
+ * It carries the promo flag because the chip's border and colour key off the
+ * same predicate as its text, so the predicate is evaluated here only once.
+ */
+export function cardAprTag(c: Card, today: Date): {text: string; promoLive: boolean} {
+  const promoLive = c.promoRate != null && c.promoEnd != null && daysUntil(c.promoEnd, today) >= 0;
+  return {
+    text: promoLive
+      ? `${c.promoRate}% until ${new Date(c.promoEnd + 'T00:00:00').toLocaleDateString('en-US', {month: 'short'})} · then ${c.apr}%`
+      : `${c.apr}% APR`,
+    promoLive,
   };
 }

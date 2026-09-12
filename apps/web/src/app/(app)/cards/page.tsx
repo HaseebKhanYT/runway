@@ -5,7 +5,7 @@ import {formatMoney} from '../../../lib/format';
 import {useState} from 'react';
 import {Toggle} from '../../../components/ui/toggle';
 import ui from '../../../components/ui/ui.module.css';
-import {cardLine, rewardPillColors} from '../../../lib/card-lines';
+import {cardAprTag, cardLine, rewardPillColors} from '../../../lib/card-lines';
 import {
   cardFormIncomplete,
   cardFormProblems,
@@ -78,10 +78,7 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
   );
   const stale = updatedDays >= 30;
 
-  const promoLive = card.promoRate != null && card.promoEnd && daysUntil(card.promoEnd, today) > 0;
-  const aprTag = promoLive
-    ? `${card.promoRate}% until ${new Date(card.promoEnd + 'T00:00:00').toLocaleDateString('en-US', {month: 'short'})} · then ${card.apr}%`
-    : `${card.apr}% APR`;
+  const aprTag = cardAprTag(card, today);
 
   const dueTag = paymentBill
     ? paymentBill.paid
@@ -117,13 +114,13 @@ function CardTile({card, state, onEdit}: {card: Card; state: AppState; onEdit: (
           style={{
             fontSize: 10.5,
             fontWeight: 600,
-            border: `1px solid ${promoLive ? 'var(--accent)' : 'var(--border-input)'}`,
-            color: promoLive ? 'var(--accent)' : 'var(--muted)',
+            border: `1px solid ${aprTag.promoLive ? 'var(--accent)' : 'var(--border-input)'}`,
+            color: aprTag.promoLive ? 'var(--accent)' : 'var(--muted)',
             borderRadius: 5,
             padding: '1px 6px',
           }}
         >
-          {aprTag}
+          {aprTag.text}
         </span>
         {dueTag && (
           <span
